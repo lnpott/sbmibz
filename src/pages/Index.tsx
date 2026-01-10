@@ -5,16 +5,27 @@ import { RTTable } from '@/components/RTTable';
 import { StatsCards } from '@/components/StatsCards';
 import { SearchBar } from '@/components/SearchBar';
 import { Button } from '@/components/ui/button';
-import { Plus, Package } from 'lucide-react';
+import { Plus, Package, Loader2 } from 'lucide-react';
 
 const Index = () => {
-  const { rts, addRT, updateStatus, searchRTs, deleteRT } = useRTs();
+  const { rts, coletores, isLoading, addRT, updateStatus, deleteRT, searchRTs, addColetor } = useRTs();
   const [showForm, setShowForm] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
   const filteredRTs = useMemo(() => {
     return searchRTs(searchQuery);
   }, [searchQuery, searchRTs]);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <p className="text-muted-foreground">Carregando...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -50,8 +61,8 @@ const Index = () => {
         {/* Form */}
         {showForm && (
           <RTForm 
-            onSubmit={(data) => {
-              addRT(data);
+            onSubmit={async (data) => {
+              await addRT(data);
               setShowForm(false);
             }}
             onCancel={() => setShowForm(false)}
@@ -67,8 +78,10 @@ const Index = () => {
 
           <RTTable 
             rts={filteredRTs}
+            coletores={coletores}
             onUpdateStatus={updateStatus}
             onDelete={deleteRT}
+            onAddColetor={addColetor}
           />
         </div>
       </main>

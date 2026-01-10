@@ -3,18 +3,35 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Plus, X } from 'lucide-react';
-import { RT } from '@/types/rt';
+import { NaturezaRT, naturezaLabels } from '@/types/rt';
 import { toast } from 'sonner';
 
 interface RTFormProps {
-  onSubmit: (rt: Omit<RT, 'id' | 'status' | 'criadoEm'>) => void;
+  onSubmit: (rt: {
+    numero: string;
+    natureza: NaturezaRT;
+    origem: string;
+    destino: string;
+    programacao?: string;
+    peso: number;
+    valor: number;
+  }) => Promise<void>;
   onCancel?: () => void;
 }
 
 export const RTForm = ({ onSubmit, onCancel }: RTFormProps) => {
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     numero: '',
+    natureza: '' as NaturezaRT | '',
     origem: '',
     destino: '',
     programacao: '',
@@ -22,33 +39,38 @@ export const RTForm = ({ onSubmit, onCancel }: RTFormProps) => {
     valor: '',
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.numero || !formData.origem || !formData.destino) {
+    if (!formData.numero || !formData.natureza || !formData.origem || !formData.destino) {
       toast.error('Preencha os campos obrigatórios');
       return;
     }
 
-    onSubmit({
-      numero: formData.numero,
-      origem: formData.origem,
-      destino: formData.destino,
-      programacao: formData.programacao,
-      peso: parseFloat(formData.peso) || 0,
-      valor: parseFloat(formData.valor) || 0,
-    });
+    setIsSubmitting(true);
+    try {
+      await onSubmit({
+        numero: formData.numero.trim(),
+        natureza: formData.natureza as NaturezaRT,
+        origem: formData.origem.trim(),
+        destino: formData.destino.trim(),
+        programacao: formData.programacao || undefined,
+        peso: parseFloat(formData.peso) || 0,
+        valor: parseFloat(formData.valor) || 0,
+      });
 
-    setFormData({
-      numero: '',
-      origem: '',
-      destino: '',
-      programacao: '',
-      peso: '',
-      valor: '',
-    });
-
-    toast.success('RT cadastrada com sucesso!');
+      setFormData({
+        numero: '',
+        natureza: '',
+        origem: '',
+        destino: '',
+        programacao: '',
+        peso: '',
+        valor: '',
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -79,6 +101,25 @@ export const RTForm = ({ onSubmit, onCancel }: RTFormProps) => {
               onChange={(e) => setFormData({ ...formData, numero: e.target.value })}
               className="transition-shadow focus:shadow-md"
             />
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="natureza">Natureza *</Label>
+            <Select
+              value={formData.natureza}
+              onValueChange={(value: NaturezaRT) => setFormData({ ...formData, natureza: value })}
+            >
+              <SelectTrigger className="transition-shadow focus:shadow-md">
+                <SelectValue placeholder="Selecione a natureza" />
+              </SelectTrigger>
+              <SelectContent>
+                {Object.entries(naturezaLabels).map(([value, label]) => (
+                  <SelectItem key={value} value={value}>
+                    {label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           
           <div className="space-y-2">
@@ -146,9 +187,13 @@ export const RTForm = ({ onSubmit, onCancel }: RTFormProps) => {
                 Cancelar
               </Button>
             )}
-            <Button type="submit" className="gradient-primary text-primary-foreground">
+            <Button 
+              type="submit" 
+              className="gradient-primary text-primary-foreground"
+              disabled={isSubmitting}
+            >
               <Plus className="h-4 w-4 mr-2" />
-              Cadastrar RT
+              {isSubmitting ? 'Cadastrando...' : 'Cadastrar RT'}
             </Button>
           </div>
         </form>

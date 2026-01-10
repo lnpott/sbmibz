@@ -9,7 +9,7 @@ interface StatsCardsProps {
 export const StatsCards = ({ rts }: StatsCardsProps) => {
   const total = rts.length;
   const pendentes = rts.filter(rt => rt.status === 'pendente').length;
-  const retiradas = rts.filter(rt => rt.status === 'retirada').length;
+  const coletadas = rts.filter(rt => rt.status === 'coletada').length;
   const despachadas = rts.filter(rt => rt.status === 'despachada').length;
 
   const stats = [
@@ -28,8 +28,8 @@ export const StatsCards = ({ rts }: StatsCardsProps) => {
       bgClassName: 'bg-warning/10',
     },
     {
-      label: 'Retiradas',
-      value: retiradas,
+      label: 'Coletadas',
+      value: coletadas,
       icon: Package,
       className: 'text-info',
       bgClassName: 'bg-info/10',

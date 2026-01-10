@@ -1,21 +1,21 @@
-import { RTStatus } from '@/types/rt';
+import { StatusRT } from '@/types/rt';
 import { Badge } from '@/components/ui/badge';
 import { Clock, Package, Truck } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface StatusBadgeProps {
-  status: RTStatus;
+  status: StatusRT;
   className?: string;
 }
 
-const statusConfig: Record<RTStatus, { label: string; icon: React.ReactNode; className: string }> = {
+const statusConfig: Record<StatusRT, { label: string; icon: React.ReactNode; className: string }> = {
   pendente: {
     label: 'Pendente',
     icon: <Clock className="h-3 w-3" />,
     className: 'bg-warning/10 text-warning border-warning/20 hover:bg-warning/20',
   },
-  retirada: {
-    label: 'Retirada',
+  coletada: {
+    label: 'Coletada',
     icon: <Package className="h-3 w-3" />,
     className: 'bg-info/10 text-info border-info/20 hover:bg-info/20',
   },
