@@ -14,7 +14,92 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      coletores: {
+        Row: {
+          cpf: string
+          created_at: string
+          email: string | null
+          id: string
+          nome: string
+          telefone: string | null
+          updated_at: string
+        }
+        Insert: {
+          cpf: string
+          created_at?: string
+          email?: string | null
+          id?: string
+          nome: string
+          telefone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          cpf?: string
+          created_at?: string
+          email?: string | null
+          id?: string
+          nome?: string
+          telefone?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      rts: {
+        Row: {
+          coletada_em: string | null
+          coletor_id: string | null
+          created_at: string
+          despachada_em: string | null
+          destino: string
+          id: string
+          natureza: Database["public"]["Enums"]["natureza_rt"]
+          numero: string
+          origem: string
+          peso: number
+          programacao: string | null
+          status: Database["public"]["Enums"]["status_rt"]
+          valor: number
+        }
+        Insert: {
+          coletada_em?: string | null
+          coletor_id?: string | null
+          created_at?: string
+          despachada_em?: string | null
+          destino: string
+          id?: string
+          natureza: Database["public"]["Enums"]["natureza_rt"]
+          numero: string
+          origem: string
+          peso?: number
+          programacao?: string | null
+          status?: Database["public"]["Enums"]["status_rt"]
+          valor?: number
+        }
+        Update: {
+          coletada_em?: string | null
+          coletor_id?: string | null
+          created_at?: string
+          despachada_em?: string | null
+          destino?: string
+          id?: string
+          natureza?: Database["public"]["Enums"]["natureza_rt"]
+          numero?: string
+          origem?: string
+          peso?: number
+          programacao?: string | null
+          status?: Database["public"]["Enums"]["status_rt"]
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rts_coletor_id_fkey"
+            columns: ["coletor_id"]
+            isOneToOne: false
+            referencedRelation: "coletores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -23,7 +108,8 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      natureza_rt: "entregador_aeronave" | "desembarque_desassistida"
+      status_rt: "pendente" | "coletada" | "despachada"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +236,9 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      natureza_rt: ["entregador_aeronave", "desembarque_desassistida"],
+      status_rt: ["pendente", "coletada", "despachada"],
+    },
   },
 } as const
