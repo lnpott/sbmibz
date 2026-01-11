@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { RT, StatusRT, NaturezaRT, Coletor } from '@/types/rt';
+import { RT, StatusRT, NaturezaRT, ClassificacaoCarga, Coletor, Local, Agente, Empresa } from '@/types/rt';
 import { toast } from 'sonner';
 
 export const useRTs = () => {
@@ -13,12 +13,14 @@ export const useRTs = () => {
         .from('rts')
         .select(`
           *,
-          coletor:coletores(*)
+          coletor:coletores!rts_coletor_id_fkey(*),
+          entregador:coletores!rts_entregador_id_fkey(*),
+          agente:agentes(*)
         `)
         .order('created_at', { ascending: false });
       
       if (error) throw error;
-      return data as RT[];
+      return data as unknown as RT[];
     },
   });
 
@@ -27,11 +29,54 @@ export const useRTs = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('coletores')
+        .select(`
+          *,
+          empresa:empresas(*)
+        `)
+        .order('nome');
+      
+      if (error) throw error;
+      return data as unknown as Coletor[];
+    },
+  });
+
+  const { data: locais = [] } = useQuery({
+    queryKey: ['locais'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('locais')
+        .select('*')
+        .order('codigo');
+      
+      if (error) throw error;
+      return data as Local[];
+    },
+  });
+
+  const { data: agentes = [] } = useQuery({
+    queryKey: ['agentes'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('agentes')
+        .select('*')
+        .eq('ativo', true)
+        .order('nome');
+      
+      if (error) throw error;
+      return data as Agente[];
+    },
+  });
+
+  const { data: empresas = [] } = useQuery({
+    queryKey: ['empresas'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('empresas')
         .select('*')
         .order('nome');
       
       if (error) throw error;
-      return data as Coletor[];
+      return data as Empresa[];
     },
   });
 
@@ -39,28 +84,49 @@ export const useRTs = () => {
     mutationFn: async (rt: {
       numero: string;
       natureza: NaturezaRT;
+      descricao?: string;
+      classificacao: ClassificacaoCarga;
       origem: string;
+      origem_id?: string;
       destino: string;
+      destino_id?: string;
       programacao?: string;
+      data_recebimento_base?: string;
+      data_prevista_despacho?: string;
       peso: number;
       valor: number;
+      agente_id?: string;
+      entregador_id?: string;
+      rt_origem_transbordo_id?: string;
     }) => {
       const { data, error } = await supabase
         .from('rts')
         .insert({
           numero: rt.numero,
           natureza: rt.natureza,
+          descricao: rt.descricao || null,
+          classificacao: rt.classificacao,
           origem: rt.origem,
+          origem_id: rt.origem_id || null,
           destino: rt.destino,
+          destino_id: rt.destino_id || null,
           programacao: rt.programacao || null,
+          data_recebimento_base: rt.data_recebimento_base || null,
+          data_prevista_despacho: rt.data_prevista_despacho || null,
           peso: rt.peso,
           valor: rt.valor,
+          agente_id: rt.agente_id || null,
+          entregador_id: rt.entregador_id || null,
+          rt_origem_transbordo_id: rt.rt_origem_transbordo_id || null,
         })
-        .select()
+        .select(`
+          *,
+          agente:agentes(*)
+        `)
         .single();
       
       if (error) throw error;
-      return data;
+      return data as unknown as RT;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['rts'] });
@@ -75,11 +141,13 @@ export const useRTs = () => {
     mutationFn: async ({ 
       id, 
       status, 
-      coletorId 
+      coletorId,
+      entregadorId 
     }: { 
       id: string; 
       status: StatusRT; 
       coletorId?: string;
+      entregadorId?: string;
     }) => {
       const updates: Record<string, unknown> = { status };
       
@@ -90,6 +158,9 @@ export const useRTs = () => {
         }
       } else if (status === 'despachada') {
         updates.despachada_em = new Date().toISOString();
+        if (entregadorId) {
+          updates.entregador_id = entregadorId;
+        }
       }
 
       const { error } = await supabase
@@ -119,22 +190,95 @@ export const useRTs = () => {
       cpf: string;
       telefone?: string;
       email?: string;
+      empresa_id?: string;
     }) => {
       const { data, error } = await supabase
         .from('coletores')
         .insert(coletor)
+        .select(`
+          *,
+          empresa:empresas(*)
+        `)
+        .single();
+      
+      if (error) throw error;
+      return data as unknown as Coletor;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['coletores'] });
+      toast.success('Pessoa cadastrada com sucesso!');
+    },
+    onError: (error: Error) => {
+      toast.error(`Erro ao cadastrar: ${error.message}`);
+    },
+  });
+
+  const updateColetorMutation = useMutation({
+    mutationFn: async ({ 
+      id, 
+      data 
+    }: { 
+      id: string; 
+      data: {
+        nome?: string;
+        telefone?: string;
+        email?: string;
+        empresa_id?: string;
+      };
+    }) => {
+      const { error } = await supabase
+        .from('coletores')
+        .update(data)
+        .eq('id', id);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['coletores'] });
+      toast.success('Dados atualizados!');
+    },
+    onError: (error: Error) => {
+      toast.error(`Erro ao atualizar: ${error.message}`);
+    },
+  });
+
+  const addEmpresaMutation = useMutation({
+    mutationFn: async (empresa: { nome: string }) => {
+      const { data, error } = await supabase
+        .from('empresas')
+        .insert(empresa)
         .select()
         .single();
       
       if (error) throw error;
-      return data as Coletor;
+      return data as Empresa;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['coletores'] });
-      toast.success('Coletor cadastrado com sucesso!');
+      queryClient.invalidateQueries({ queryKey: ['empresas'] });
+      toast.success('Empresa cadastrada com sucesso!');
     },
     onError: (error: Error) => {
-      toast.error(`Erro ao cadastrar coletor: ${error.message}`);
+      toast.error(`Erro ao cadastrar empresa: ${error.message}`);
+    },
+  });
+
+  const addLocalMutation = useMutation({
+    mutationFn: async (local: { codigo: string; descricao?: string }) => {
+      const { data, error } = await supabase
+        .from('locais')
+        .insert(local)
+        .select()
+        .single();
+      
+      if (error) throw error;
+      return data as Local;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['locais'] });
+      toast.success('Local cadastrado com sucesso!');
+    },
+    onError: (error: Error) => {
+      toast.error(`Erro ao cadastrar local: ${error.message}`);
     },
   });
 
@@ -167,24 +311,35 @@ export const useRTs = () => {
       data: {
         numero: string;
         natureza: NaturezaRT;
+        descricao?: string;
+        classificacao: ClassificacaoCarga;
         origem: string;
+        origem_id?: string;
         destino: string;
+        destino_id?: string;
         programacao?: string;
+        data_recebimento_base?: string;
+        data_prevista_despacho?: string;
         peso: number;
         valor: number;
       };
       motivo: string;
       dadosAnteriores: RT;
     }) => {
-      // Atualiza a RT
       const { error: updateError } = await supabase
         .from('rts')
         .update({
           numero: data.numero,
           natureza: data.natureza,
+          descricao: data.descricao || null,
+          classificacao: data.classificacao,
           origem: data.origem,
+          origem_id: data.origem_id || null,
           destino: data.destino,
+          destino_id: data.destino_id || null,
           programacao: data.programacao || null,
+          data_recebimento_base: data.data_recebimento_base || null,
+          data_prevista_despacho: data.data_prevista_despacho || null,
           peso: data.peso,
           valor: data.valor,
         })
@@ -192,7 +347,6 @@ export const useRTs = () => {
       
       if (updateError) throw updateError;
 
-      // Registra a edição
       const { error: logError } = await supabase
         .from('rt_edicoes')
         .insert({
@@ -201,6 +355,8 @@ export const useRTs = () => {
           dados_anteriores: {
             numero: dadosAnteriores.numero,
             natureza: dadosAnteriores.natureza,
+            descricao: dadosAnteriores.descricao,
+            classificacao: dadosAnteriores.classificacao,
             origem: dadosAnteriores.origem,
             destino: dadosAnteriores.destino,
             programacao: dadosAnteriores.programacao,
@@ -221,6 +377,11 @@ export const useRTs = () => {
     },
   });
 
+  const findColetorByCPF = (cpf: string): Coletor | undefined => {
+    const normalizedCPF = cpf.replace(/\D/g, '');
+    return coletores.find(c => c.cpf.replace(/\D/g, '') === normalizedCPF);
+  };
+
   const searchRTs = (query: string): RT[] => {
     if (!query.trim()) return rts;
     
@@ -231,19 +392,28 @@ export const useRTs = () => {
       rt.destino.toLowerCase().includes(lowerQuery) ||
       rt.status.toLowerCase().includes(lowerQuery) ||
       rt.natureza.toLowerCase().includes(lowerQuery) ||
-      (rt.coletor?.nome?.toLowerCase().includes(lowerQuery))
+      (rt.descricao?.toLowerCase().includes(lowerQuery)) ||
+      (rt.coletor?.nome?.toLowerCase().includes(lowerQuery)) ||
+      (rt.agente?.nome?.toLowerCase().includes(lowerQuery))
     );
   };
 
   return {
     rts,
     coletores,
+    locais,
+    agentes,
+    empresas,
     isLoading,
     addRT: addRTMutation.mutateAsync,
     updateStatus: updateStatusMutation.mutateAsync,
     addColetor: addColetorMutation.mutateAsync,
+    updateColetor: updateColetorMutation.mutateAsync,
+    addEmpresa: addEmpresaMutation.mutateAsync,
+    addLocal: addLocalMutation.mutateAsync,
     deleteRT: deleteRTMutation.mutateAsync,
     updateRT: updateRTMutation.mutateAsync,
+    findColetorByCPF,
     searchRTs,
   };
 };

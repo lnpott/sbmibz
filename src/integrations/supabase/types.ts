@@ -14,11 +14,33 @@ export type Database = {
   }
   public: {
     Tables: {
+      agentes: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          id: string
+          nome: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          nome: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          nome?: string
+        }
+        Relationships: []
+      }
       coletores: {
         Row: {
           cpf: string
           created_at: string
           email: string | null
+          empresa_id: string | null
           id: string
           nome: string
           telefone: string | null
@@ -28,6 +50,7 @@ export type Database = {
           cpf: string
           created_at?: string
           email?: string | null
+          empresa_id?: string | null
           id?: string
           nome: string
           telefone?: string | null
@@ -37,10 +60,58 @@ export type Database = {
           cpf?: string
           created_at?: string
           email?: string | null
+          empresa_id?: string | null
           id?: string
           nome?: string
           telefone?: string | null
           updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coletores_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      empresas: {
+        Row: {
+          created_at: string
+          id: string
+          nome: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          nome: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          nome?: string
+        }
+        Relationships: []
+      }
+      locais: {
+        Row: {
+          codigo: string
+          created_at: string
+          descricao: string | null
+          id: string
+        }
+        Insert: {
+          codigo: string
+          created_at?: string
+          descricao?: string | null
+          id?: string
+        }
+        Update: {
+          codigo?: string
+          created_at?: string
+          descricao?: string | null
+          id?: string
         }
         Relationships: []
       }
@@ -81,56 +152,118 @@ export type Database = {
       }
       rts: {
         Row: {
+          agente_id: string | null
+          classificacao: Database["public"]["Enums"]["classificacao_carga"]
           coletada_em: string | null
           coletor_id: string | null
           created_at: string
+          data_prevista_despacho: string | null
+          data_recebimento_base: string | null
+          descricao: string | null
           despachada_em: string | null
           destino: string
+          destino_id: string | null
+          entregador_id: string | null
           id: string
           natureza: Database["public"]["Enums"]["natureza_rt"]
           numero: string
           origem: string
+          origem_id: string | null
           peso: number
           programacao: string | null
+          rt_origem_transbordo_id: string | null
           status: Database["public"]["Enums"]["status_rt"]
           valor: number
         }
         Insert: {
+          agente_id?: string | null
+          classificacao?: Database["public"]["Enums"]["classificacao_carga"]
           coletada_em?: string | null
           coletor_id?: string | null
           created_at?: string
+          data_prevista_despacho?: string | null
+          data_recebimento_base?: string | null
+          descricao?: string | null
           despachada_em?: string | null
           destino: string
+          destino_id?: string | null
+          entregador_id?: string | null
           id?: string
           natureza: Database["public"]["Enums"]["natureza_rt"]
           numero: string
           origem: string
+          origem_id?: string | null
           peso?: number
           programacao?: string | null
+          rt_origem_transbordo_id?: string | null
           status?: Database["public"]["Enums"]["status_rt"]
           valor?: number
         }
         Update: {
+          agente_id?: string | null
+          classificacao?: Database["public"]["Enums"]["classificacao_carga"]
           coletada_em?: string | null
           coletor_id?: string | null
           created_at?: string
+          data_prevista_despacho?: string | null
+          data_recebimento_base?: string | null
+          descricao?: string | null
           despachada_em?: string | null
           destino?: string
+          destino_id?: string | null
+          entregador_id?: string | null
           id?: string
           natureza?: Database["public"]["Enums"]["natureza_rt"]
           numero?: string
           origem?: string
+          origem_id?: string | null
           peso?: number
           programacao?: string | null
+          rt_origem_transbordo_id?: string | null
           status?: Database["public"]["Enums"]["status_rt"]
           valor?: number
         }
         Relationships: [
           {
+            foreignKeyName: "rts_agente_id_fkey"
+            columns: ["agente_id"]
+            isOneToOne: false
+            referencedRelation: "agentes"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "rts_coletor_id_fkey"
             columns: ["coletor_id"]
             isOneToOne: false
             referencedRelation: "coletores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rts_destino_id_fkey"
+            columns: ["destino_id"]
+            isOneToOne: false
+            referencedRelation: "locais"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rts_entregador_id_fkey"
+            columns: ["entregador_id"]
+            isOneToOne: false
+            referencedRelation: "coletores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rts_origem_id_fkey"
+            columns: ["origem_id"]
+            isOneToOne: false
+            referencedRelation: "locais"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rts_rt_origem_transbordo_id_fkey"
+            columns: ["rt_origem_transbordo_id"]
+            isOneToOne: false
+            referencedRelation: "rts"
             referencedColumns: ["id"]
           },
         ]
@@ -143,7 +276,8 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      natureza_rt: "entregador_aeronave" | "desembarque_desassistida"
+      classificacao_carga: "comum" | "fragil"
+      natureza_rt: "coleta" | "despacho" | "transbordo"
       status_rt: "pendente" | "coletada" | "despachada"
     }
     CompositeTypes: {
@@ -272,7 +406,8 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      natureza_rt: ["entregador_aeronave", "desembarque_desassistida"],
+      classificacao_carga: ["comum", "fragil"],
+      natureza_rt: ["coleta", "despacho", "transbordo"],
       status_rt: ["pendente", "coletada", "despachada"],
     },
   },
