@@ -144,16 +144,18 @@ export const RTForm = ({ onSubmit, onCancel }: RTFormProps) => {
             />
           </div>
           
-          <div className="space-y-2">
-            <Label htmlFor="programacao">Programação</Label>
-            <Input
-              id="programacao"
-              type="date"
-              value={formData.programacao}
-              onChange={(e) => setFormData({ ...formData, programacao: e.target.value })}
-              className="transition-shadow focus:shadow-md"
-            />
-          </div>
+          {formData.natureza === 'entregador_aeronave' && (
+            <div className="space-y-2">
+              <Label htmlFor="programacao">Programação</Label>
+              <Input
+                id="programacao"
+                type="date"
+                value={formData.programacao}
+                onChange={(e) => setFormData({ ...formData, programacao: e.target.value })}
+                className="transition-shadow focus:shadow-md"
+              />
+            </div>
+          )}
           
           <div className="space-y-2">
             <Label htmlFor="peso">Peso (kg)</Label>
