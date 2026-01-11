@@ -156,6 +156,71 @@ export const useRTs = () => {
     },
   });
 
+  const updateRTMutation = useMutation({
+    mutationFn: async ({ 
+      id, 
+      data, 
+      motivo,
+      dadosAnteriores 
+    }: { 
+      id: string; 
+      data: {
+        numero: string;
+        natureza: NaturezaRT;
+        origem: string;
+        destino: string;
+        programacao?: string;
+        peso: number;
+        valor: number;
+      };
+      motivo: string;
+      dadosAnteriores: RT;
+    }) => {
+      // Atualiza a RT
+      const { error: updateError } = await supabase
+        .from('rts')
+        .update({
+          numero: data.numero,
+          natureza: data.natureza,
+          origem: data.origem,
+          destino: data.destino,
+          programacao: data.programacao || null,
+          peso: data.peso,
+          valor: data.valor,
+        })
+        .eq('id', id);
+      
+      if (updateError) throw updateError;
+
+      // Registra a edição
+      const { error: logError } = await supabase
+        .from('rt_edicoes')
+        .insert({
+          rt_id: id,
+          motivo: motivo,
+          dados_anteriores: {
+            numero: dadosAnteriores.numero,
+            natureza: dadosAnteriores.natureza,
+            origem: dadosAnteriores.origem,
+            destino: dadosAnteriores.destino,
+            programacao: dadosAnteriores.programacao,
+            peso: dadosAnteriores.peso,
+            valor: dadosAnteriores.valor,
+          },
+          dados_novos: data,
+        });
+      
+      if (logError) throw logError;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['rts'] });
+      toast.success('RT atualizada com sucesso!');
+    },
+    onError: (error: Error) => {
+      toast.error(`Erro ao atualizar RT: ${error.message}`);
+    },
+  });
+
   const searchRTs = (query: string): RT[] => {
     if (!query.trim()) return rts;
     
@@ -178,6 +243,7 @@ export const useRTs = () => {
     updateStatus: updateStatusMutation.mutateAsync,
     addColetor: addColetorMutation.mutateAsync,
     deleteRT: deleteRTMutation.mutateAsync,
+    updateRT: updateRTMutation.mutateAsync,
     searchRTs,
   };
 };

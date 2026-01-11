@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { RT, StatusRT, naturezaLabels, Coletor } from '@/types/rt';
+import { RT, StatusRT, naturezaLabels, Coletor, NaturezaRT } from '@/types/rt';
 import { StatusBadge } from './StatusBadge';
 import { ColetaDialog } from './ColetaDialog';
+import { RTEditDialog } from './RTEditDialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -23,7 +24,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { MoreHorizontal, Package, Truck, Trash2, MapPin, Calendar, Scale, DollarSign, Plane, User } from 'lucide-react';
+import { MoreHorizontal, Package, Truck, Trash2, MapPin, Calendar, Scale, DollarSign, Plane, User, Edit3 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -38,11 +39,27 @@ interface RTTableProps {
     telefone?: string;
     email?: string;
   }) => Promise<Coletor>;
+  onUpdateRT: (params: {
+    id: string;
+    data: {
+      numero: string;
+      natureza: NaturezaRT;
+      origem: string;
+      destino: string;
+      programacao?: string;
+      peso: number;
+      valor: number;
+    };
+    motivo: string;
+    dadosAnteriores: RT;
+  }) => Promise<void>;
 }
 
-export const RTTable = ({ rts, coletores, onUpdateStatus, onDelete, onAddColetor }: RTTableProps) => {
+export const RTTable = ({ rts, coletores, onUpdateStatus, onDelete, onAddColetor, onUpdateRT }: RTTableProps) => {
   const [coletaDialogOpen, setColetaDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [selectedRTId, setSelectedRTId] = useState<string | null>(null);
+  const [selectedRT, setSelectedRT] = useState<RT | null>(null);
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
@@ -74,6 +91,30 @@ export const RTTable = ({ rts, coletores, onUpdateStatus, onDelete, onAddColetor
 
   const handleDelete = async (id: string) => {
     await onDelete(id);
+  };
+
+  const handleEdit = (rt: RT) => {
+    setSelectedRT(rt);
+    setEditDialogOpen(true);
+  };
+
+  const handleConfirmEdit = async (
+    id: string,
+    data: {
+      numero: string;
+      natureza: NaturezaRT;
+      origem: string;
+      destino: string;
+      programacao?: string;
+      peso: number;
+      valor: number;
+    },
+    motivo: string
+  ) => {
+    if (selectedRT) {
+      await onUpdateRT({ id, data, motivo, dadosAnteriores: selectedRT });
+      setSelectedRT(null);
+    }
   };
 
   if (rts.length === 0) {
@@ -133,10 +174,14 @@ export const RTTable = ({ rts, coletores, onUpdateStatus, onDelete, onAddColetor
                   </div>
                 </TableCell>
                 <TableCell>
-                  <div className="flex items-center gap-1.5 text-sm">
-                    <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
-                    {formatDate(rt.programacao)}
-                  </div>
+                  {rt.natureza === 'entregador_aeronave' ? (
+                    <div className="flex items-center gap-1.5 text-sm">
+                      <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
+                      {formatDate(rt.programacao)}
+                    </div>
+                  ) : (
+                    <span className="text-muted-foreground text-sm">-</span>
+                  )}
                 </TableCell>
                 <TableCell className="text-right">
                   <div className="flex items-center justify-end gap-1 text-sm">
@@ -182,6 +227,10 @@ export const RTTable = ({ rts, coletores, onUpdateStatus, onDelete, onAddColetor
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="w-48">
+                      <DropdownMenuItem onClick={() => handleEdit(rt)}>
+                        <Edit3 className="h-4 w-4 mr-2 text-primary" />
+                        Editar RT
+                      </DropdownMenuItem>
                       {rt.status === 'pendente' && (
                         <DropdownMenuItem onClick={() => handleColeta(rt.id)}>
                           <Package className="h-4 w-4 mr-2 text-info" />
@@ -216,6 +265,13 @@ export const RTTable = ({ rts, coletores, onUpdateStatus, onDelete, onAddColetor
         coletores={coletores}
         onConfirm={handleConfirmColeta}
         onAddColetor={onAddColetor}
+      />
+
+      <RTEditDialog
+        open={editDialogOpen}
+        onOpenChange={setEditDialogOpen}
+        rt={selectedRT}
+        onConfirm={handleConfirmEdit}
       />
     </>
   );

@@ -2,19 +2,81 @@ import { useState, useMemo } from 'react';
 import { useRTs } from '@/hooks/useRTs';
 import { RTForm } from '@/components/RTForm';
 import { RTTable } from '@/components/RTTable';
+import { PendingRTsColumns } from '@/components/PendingRTsColumns';
+import { ColetaDialog } from '@/components/ColetaDialog';
+import { RTEditDialog } from '@/components/RTEditDialog';
 import { StatsCards } from '@/components/StatsCards';
 import { SearchBar } from '@/components/SearchBar';
 import { Button } from '@/components/ui/button';
-import { Plus, Package, Loader2 } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Plus, Package, Loader2, LayoutGrid, List } from 'lucide-react';
+import { RT, NaturezaRT } from '@/types/rt';
 
 const Index = () => {
-  const { rts, coletores, isLoading, addRT, updateStatus, deleteRT, searchRTs, addColetor } = useRTs();
+  const { rts, coletores, isLoading, addRT, updateStatus, deleteRT, searchRTs, addColetor, updateRT } = useRTs();
   const [showForm, setShowForm] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  
+  // Estados para os dialogs das colunas pendentes
+  const [coletaDialogOpen, setColetaDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [selectedRTId, setSelectedRTId] = useState<string | null>(null);
+  const [selectedRT, setSelectedRT] = useState<RT | null>(null);
 
   const filteredRTs = useMemo(() => {
     return searchRTs(searchQuery);
   }, [searchQuery, searchRTs]);
+
+  // Separar RTs pendentes por natureza
+  const pendingEmbarque = useMemo(() => {
+    return rts.filter(rt => rt.status === 'pendente' && rt.natureza === 'entregador_aeronave');
+  }, [rts]);
+
+  const pendingColeta = useMemo(() => {
+    return rts.filter(rt => rt.status === 'pendente' && rt.natureza === 'desembarque_desassistida');
+  }, [rts]);
+
+  const handleColetaFromColumns = (id: string) => {
+    setSelectedRTId(id);
+    setColetaDialogOpen(true);
+  };
+
+  const handleConfirmColeta = async (coletorId: string) => {
+    if (selectedRTId) {
+      await updateStatus({ id: selectedRTId, status: 'coletada', coletorId });
+      setSelectedRTId(null);
+      setColetaDialogOpen(false);
+    }
+  };
+
+  const handleDespachoFromColumns = async (id: string) => {
+    await updateStatus({ id, status: 'despachada' });
+  };
+
+  const handleEditFromColumns = (rt: RT) => {
+    setSelectedRT(rt);
+    setEditDialogOpen(true);
+  };
+
+  const handleConfirmEdit = async (
+    id: string,
+    data: {
+      numero: string;
+      natureza: NaturezaRT;
+      origem: string;
+      destino: string;
+      programacao?: string;
+      peso: number;
+      valor: number;
+    },
+    motivo: string
+  ) => {
+    if (selectedRT) {
+      await updateRT({ id, data, motivo, dadosAnteriores: selectedRT });
+      setSelectedRT(null);
+      setEditDialogOpen(false);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -69,10 +131,23 @@ const Index = () => {
           />
         )}
 
-        {/* Search and Table */}
+        {/* Pendentes em 2 colunas */}
+        <div className="space-y-4">
+          <h2 className="text-lg font-semibold">RTs Pendentes</h2>
+          <PendingRTsColumns
+            embarqueRTs={pendingEmbarque}
+            coletaRTs={pendingColeta}
+            onColeta={handleColetaFromColumns}
+            onDespacho={handleDespachoFromColumns}
+            onEdit={handleEditFromColumns}
+            onDelete={deleteRT}
+          />
+        </div>
+
+        {/* Search and Full Table */}
         <div className="space-y-4">
           <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
-            <h2 className="text-lg font-semibold">Listagem de RTs</h2>
+            <h2 className="text-lg font-semibold">Listagem Completa de RTs</h2>
             <SearchBar value={searchQuery} onChange={setSearchQuery} />
           </div>
 
@@ -82,6 +157,7 @@ const Index = () => {
             onUpdateStatus={updateStatus}
             onDelete={deleteRT}
             onAddColetor={addColetor}
+            onUpdateRT={updateRT}
           />
         </div>
       </main>
@@ -94,6 +170,22 @@ const Index = () => {
           </p>
         </div>
       </footer>
+
+      {/* Dialogs para as colunas de pendentes */}
+      <ColetaDialog
+        open={coletaDialogOpen}
+        onOpenChange={setColetaDialogOpen}
+        coletores={coletores}
+        onConfirm={handleConfirmColeta}
+        onAddColetor={addColetor}
+      />
+
+      <RTEditDialog
+        open={editDialogOpen}
+        onOpenChange={setEditDialogOpen}
+        rt={selectedRT}
+        onConfirm={handleConfirmEdit}
+      />
     </div>
   );
 };

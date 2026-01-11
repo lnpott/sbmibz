@@ -44,6 +44,41 @@ export type Database = {
         }
         Relationships: []
       }
+      rt_edicoes: {
+        Row: {
+          dados_anteriores: Json
+          dados_novos: Json
+          editado_em: string
+          id: string
+          motivo: string
+          rt_id: string
+        }
+        Insert: {
+          dados_anteriores: Json
+          dados_novos: Json
+          editado_em?: string
+          id?: string
+          motivo: string
+          rt_id: string
+        }
+        Update: {
+          dados_anteriores?: Json
+          dados_novos?: Json
+          editado_em?: string
+          id?: string
+          motivo?: string
+          rt_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rt_edicoes_rt_id_fkey"
+            columns: ["rt_id"]
+            isOneToOne: false
+            referencedRelation: "rts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       rts: {
         Row: {
           coletada_em: string | null
