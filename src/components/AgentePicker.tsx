@@ -12,24 +12,28 @@ import { Agente } from '@/types/rt';
 import { User, Shield, Check } from 'lucide-react';
 
 interface AgentePickerProps {
-  open: boolean;
-  onSelect: (agente: Agente) => void;
   agentes: Agente[];
+  onSelect: (agente: Agente) => void;
 }
 
 const STORAGE_KEY = 'agente_selecionado';
 
-export const AgentePicker = ({ open, onSelect, agentes }: AgentePickerProps) => {
+export const AgentePicker = ({ agentes, onSelect }: AgentePickerProps) => {
+  const [open, setOpen] = useState(false);
   const [selected, setSelected] = useState<Agente | null>(null);
 
-  // Load saved agente on mount
+  // Load saved agente on mount or show dialog
   useEffect(() => {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved && agentes.length > 0) {
       const agente = agentes.find((a) => a.id === saved);
       if (agente) {
         onSelect(agente);
+      } else {
+        setOpen(true);
       }
+    } else if (agentes.length > 0) {
+      setOpen(true);
     }
   }, [agentes, onSelect]);
 
@@ -37,6 +41,7 @@ export const AgentePicker = ({ open, onSelect, agentes }: AgentePickerProps) => 
     if (selected) {
       localStorage.setItem(STORAGE_KEY, selected.id);
       onSelect(selected);
+      setOpen(false);
     }
   };
 
