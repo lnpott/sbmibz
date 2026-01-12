@@ -31,31 +31,14 @@ import { ptBR } from 'date-fns/locale';
 interface RTTableProps {
   rts: RT[];
   coletores: Coletor[];
+  empresas: { id: string; nome: string }[];
   onUpdateStatus: (params: { id: string; status: StatusRT; coletorId?: string }) => Promise<void>;
   onDelete: (id: string) => Promise<void>;
-  onAddColetor: (coletor: {
-    nome: string;
-    cpf: string;
-    telefone?: string;
-    email?: string;
-    empresa_id?: string;
-  }) => Promise<Coletor>;
-  onUpdateRT: (params: {
-    id: string;
-    data: {
-      numero: string;
-      natureza: NaturezaRT;
-      descricao?: string;
-      classificacao: ClassificacaoCarga;
-      origem: string;
-      destino: string;
-      programacao?: string;
-      peso: number;
-      valor: number;
-    };
-    motivo: string;
-    dadosAnteriores: RT;
-  }) => Promise<void>;
+  onAddColetor: (coletor: { nome: string; cpf: string; telefone?: string; email?: string; empresa_id?: string }) => Promise<Coletor>;
+  onUpdateColetor: (params: { id: string; data: { nome?: string; telefone?: string; email?: string; empresa_id?: string } }) => Promise<void>;
+  onAddEmpresa: (empresa: { nome: string }) => Promise<{ id: string; nome: string }>;
+  findColetorByCPF: (cpf: string) => Coletor | undefined;
+  onUpdateRT: (params: { id: string; data: { numero: string; natureza: NaturezaRT; descricao?: string; classificacao: ClassificacaoCarga; origem: string; destino: string; programacao?: string; peso: number; valor: number }; motivo: string; dadosAnteriores: RT }) => Promise<void>;
 }
 
 export const RTTable = ({ rts, coletores, onUpdateStatus, onDelete, onAddColetor, onUpdateRT }: RTTableProps) => {
