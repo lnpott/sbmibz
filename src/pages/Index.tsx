@@ -7,15 +7,33 @@ import { ColetaDialog } from '@/components/ColetaDialog';
 import { RTEditDialog } from '@/components/RTEditDialog';
 import { StatsCards } from '@/components/StatsCards';
 import { SearchBar } from '@/components/SearchBar';
+import { AgentePicker } from '@/components/AgentePicker';
 import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus, Package, Loader2, LayoutGrid, List } from 'lucide-react';
-import { RT, NaturezaRT } from '@/types/rt';
+import { Plus, Package, Loader2 } from 'lucide-react';
+import { RT, NaturezaRT, ClassificacaoCarga } from '@/types/rt';
 
 const Index = () => {
-  const { rts, coletores, isLoading, addRT, updateStatus, deleteRT, searchRTs, addColetor, updateRT } = useRTs();
+  const { 
+    rts, 
+    coletores, 
+    locais, 
+    agentes, 
+    empresas, 
+    isLoading, 
+    addRT, 
+    updateStatus, 
+    deleteRT, 
+    searchRTs, 
+    addColetor, 
+    updateColetor,
+    addEmpresa,
+    addLocal,
+    updateRT 
+  } = useRTs();
+  
   const [showForm, setShowForm] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedAgente, setSelectedAgente] = useState<string | null>(null);
   
   // Estados para os dialogs das colunas pendentes
   const [coletaDialogOpen, setColetaDialogOpen] = useState(false);
@@ -28,12 +46,12 @@ const Index = () => {
   }, [searchQuery, searchRTs]);
 
   // Separar RTs pendentes por natureza
-  const pendingEmbarque = useMemo(() => {
-    return rts.filter(rt => rt.status === 'pendente' && rt.natureza === 'entregador_aeronave');
+  const pendingDespacho = useMemo(() => {
+    return rts.filter(rt => rt.status === 'pendente' && rt.natureza === 'despacho');
   }, [rts]);
 
   const pendingColeta = useMemo(() => {
-    return rts.filter(rt => rt.status === 'pendente' && rt.natureza === 'desembarque_desassistida');
+    return rts.filter(rt => rt.status === 'pendente' && (rt.natureza === 'coleta' || rt.natureza === 'transbordo'));
   }, [rts]);
 
   const handleColetaFromColumns = (id: string) => {
@@ -63,6 +81,8 @@ const Index = () => {
     data: {
       numero: string;
       natureza: NaturezaRT;
+      descricao?: string;
+      classificacao: ClassificacaoCarga;
       origem: string;
       destino: string;
       programacao?: string;
@@ -78,6 +98,10 @@ const Index = () => {
     }
   };
 
+  const handleAgenteSelect = (agenteId: string) => {
+    setSelectedAgente(agenteId);
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -90,103 +114,116 @@ const Index = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b bg-card/80 glass-effect sticky top-0 z-50">
-        <div className="container py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-xl gradient-primary flex items-center justify-center shadow-lg">
-                <Package className="h-5 w-5 text-primary-foreground" />
+    <>
+      <AgentePicker agentes={agentes} onSelect={handleAgenteSelect} />
+      
+      <div className="min-h-screen bg-background">
+        {/* Header */}
+        <header className="border-b bg-card/80 glass-effect sticky top-0 z-50">
+          <div className="container py-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-xl gradient-primary flex items-center justify-center shadow-lg">
+                  <Package className="h-5 w-5 text-primary-foreground" />
+                </div>
+                <div>
+                  <h1 className="text-xl font-bold">Sistema de RTs</h1>
+                  <p className="text-xs text-muted-foreground">Gerenciamento de Transportes</p>
+                </div>
               </div>
-              <div>
-                <h1 className="text-xl font-bold">Sistema de RTs</h1>
-                <p className="text-xs text-muted-foreground">Gerenciamento de Transportes</p>
-              </div>
+              <Button 
+                onClick={() => setShowForm(!showForm)}
+                className={showForm ? 'bg-muted text-muted-foreground hover:bg-muted/80' : 'gradient-primary text-primary-foreground'}
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                {showForm ? 'Fechar' : 'Nova RT'}
+              </Button>
             </div>
-            <Button 
-              onClick={() => setShowForm(!showForm)}
-              className={showForm ? 'bg-muted text-muted-foreground hover:bg-muted/80' : 'gradient-primary text-primary-foreground'}
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              {showForm ? 'Fechar' : 'Nova RT'}
-            </Button>
           </div>
-        </div>
-      </header>
+        </header>
 
-      {/* Main Content */}
-      <main className="container py-6 space-y-6">
-        {/* Stats */}
-        <StatsCards rts={rts} />
+        {/* Main Content */}
+        <main className="container py-6 space-y-6">
+          {/* Stats */}
+          <StatsCards rts={rts} />
 
-        {/* Form */}
-        {showForm && (
-          <RTForm 
-            onSubmit={async (data) => {
-              await addRT(data);
-              setShowForm(false);
-            }}
-            onCancel={() => setShowForm(false)}
-          />
-        )}
+          {/* Form */}
+          {showForm && (
+            <RTForm 
+              onSubmit={async (data) => {
+                await addRT({ ...data, agente_id: selectedAgente || undefined });
+                setShowForm(false);
+              }}
+              onCancel={() => setShowForm(false)}
+              locais={locais}
+              coletores={coletores}
+              empresas={empresas}
+              onAddLocal={addLocal}
+              onAddColetor={addColetor}
+              onAddEmpresa={addEmpresa}
+              onUpdateColetor={async (id, data) => {
+                await updateColetor({ id, data });
+              }}
+            />
+          )}
 
-        {/* Pendentes em 2 colunas */}
-        <div className="space-y-4">
-          <h2 className="text-lg font-semibold">RTs Pendentes</h2>
-          <PendingRTsColumns
-            embarqueRTs={pendingEmbarque}
-            coletaRTs={pendingColeta}
-            onColeta={handleColetaFromColumns}
-            onDespacho={handleDespachoFromColumns}
-            onEdit={handleEditFromColumns}
-            onDelete={deleteRT}
-          />
-        </div>
-
-        {/* Search and Full Table */}
-        <div className="space-y-4">
-          <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
-            <h2 className="text-lg font-semibold">Listagem Completa de RTs</h2>
-            <SearchBar value={searchQuery} onChange={setSearchQuery} />
+          {/* Pendentes em 2 colunas */}
+          <div className="space-y-4">
+            <h2 className="text-lg font-semibold">RTs Pendentes</h2>
+            <PendingRTsColumns
+              despachoRTs={pendingDespacho}
+              coletaRTs={pendingColeta}
+              onColeta={handleColetaFromColumns}
+              onDespacho={handleDespachoFromColumns}
+              onEdit={handleEditFromColumns}
+              onDelete={deleteRT}
+            />
           </div>
 
-          <RTTable 
-            rts={filteredRTs}
-            coletores={coletores}
-            onUpdateStatus={updateStatus}
-            onDelete={deleteRT}
-            onAddColetor={addColetor}
-            onUpdateRT={updateRT}
-          />
-        </div>
-      </main>
+          {/* Search and Full Table */}
+          <div className="space-y-4">
+            <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+              <h2 className="text-lg font-semibold">Listagem Completa de RTs</h2>
+              <SearchBar value={searchQuery} onChange={setSearchQuery} />
+            </div>
 
-      {/* Footer */}
-      <footer className="border-t bg-card/50 mt-auto">
-        <div className="container py-4">
-          <p className="text-xs text-center text-muted-foreground">
-            Sistema de Gerenciamento de RTs © {new Date().getFullYear()}
-          </p>
-        </div>
-      </footer>
+            <RTTable 
+              rts={filteredRTs}
+              coletores={coletores}
+              onUpdateStatus={updateStatus}
+              onDelete={deleteRT}
+              onAddColetor={addColetor}
+              onUpdateRT={updateRT}
+            />
+          </div>
+        </main>
 
-      {/* Dialogs para as colunas de pendentes */}
-      <ColetaDialog
-        open={coletaDialogOpen}
-        onOpenChange={setColetaDialogOpen}
-        coletores={coletores}
-        onConfirm={handleConfirmColeta}
-        onAddColetor={addColetor}
-      />
+        {/* Footer */}
+        <footer className="border-t bg-card/50 mt-auto">
+          <div className="container py-4">
+            <p className="text-xs text-center text-muted-foreground">
+              Sistema de Gerenciamento de RTs © {new Date().getFullYear()}
+            </p>
+          </div>
+        </footer>
 
-      <RTEditDialog
-        open={editDialogOpen}
-        onOpenChange={setEditDialogOpen}
-        rt={selectedRT}
-        onConfirm={handleConfirmEdit}
-      />
-    </div>
+        {/* Dialogs para as colunas de pendentes */}
+        <ColetaDialog
+          open={coletaDialogOpen}
+          onOpenChange={setColetaDialogOpen}
+          coletores={coletores}
+          onConfirm={handleConfirmColeta}
+          onAddColetor={addColetor}
+        />
+
+        <RTEditDialog
+          open={editDialogOpen}
+          onOpenChange={setEditDialogOpen}
+          rt={selectedRT}
+          onConfirm={handleConfirmEdit}
+        />
+      </div>
+    </>
   );
 };
 

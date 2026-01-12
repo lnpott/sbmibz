@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { RT, StatusRT, naturezaLabels, Coletor, NaturezaRT } from '@/types/rt';
+import { RT, StatusRT, naturezaLabels, classificacaoLabels, Coletor, NaturezaRT, ClassificacaoCarga } from '@/types/rt';
 import { StatusBadge } from './StatusBadge';
 import { ColetaDialog } from './ColetaDialog';
 import { RTEditDialog } from './RTEditDialog';
@@ -38,12 +38,15 @@ interface RTTableProps {
     cpf: string;
     telefone?: string;
     email?: string;
+    empresa_id?: string;
   }) => Promise<Coletor>;
   onUpdateRT: (params: {
     id: string;
     data: {
       numero: string;
       natureza: NaturezaRT;
+      descricao?: string;
+      classificacao: ClassificacaoCarga;
       origem: string;
       destino: string;
       programacao?: string;
@@ -103,6 +106,8 @@ export const RTTable = ({ rts, coletores, onUpdateStatus, onDelete, onAddColetor
     data: {
       numero: string;
       natureza: NaturezaRT;
+      descricao?: string;
+      classificacao: ClassificacaoCarga;
       origem: string;
       destino: string;
       programacao?: string;
@@ -139,6 +144,7 @@ export const RTTable = ({ rts, coletores, onUpdateStatus, onDelete, onAddColetor
             <TableRow className="bg-muted/50">
               <TableHead className="font-semibold">Número</TableHead>
               <TableHead className="font-semibold">Natureza</TableHead>
+              <TableHead className="font-semibold">Classificação</TableHead>
               <TableHead className="font-semibold">Rota</TableHead>
               <TableHead className="font-semibold">Programação</TableHead>
               <TableHead className="font-semibold text-right">Peso</TableHead>
@@ -153,17 +159,15 @@ export const RTTable = ({ rts, coletores, onUpdateStatus, onDelete, onAddColetor
               <TableRow key={rt.id} className="hover:bg-muted/30 transition-colors">
                 <TableCell className="font-medium">{rt.numero}</TableCell>
                 <TableCell>
-                  <Tooltip>
-                    <TooltipTrigger>
-                      <Badge variant="outline" className="flex items-center gap-1 w-fit">
-                        <Plane className="h-3 w-3" />
-                        {rt.natureza === 'entregador_aeronave' ? 'Aeronave' : 'Desembarque'}
-                      </Badge>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      {naturezaLabels[rt.natureza]}
-                    </TooltipContent>
-                  </Tooltip>
+                  <Badge variant="outline" className="flex items-center gap-1 w-fit">
+                    <Plane className="h-3 w-3" />
+                    {naturezaLabels[rt.natureza]}
+                  </Badge>
+                </TableCell>
+                <TableCell>
+                  <Badge variant={rt.classificacao === 'fragil' ? 'destructive' : 'secondary'}>
+                    {classificacaoLabels[rt.classificacao]}
+                  </Badge>
                 </TableCell>
                 <TableCell>
                   <div className="flex items-center gap-1.5 text-sm">
@@ -174,7 +178,7 @@ export const RTTable = ({ rts, coletores, onUpdateStatus, onDelete, onAddColetor
                   </div>
                 </TableCell>
                 <TableCell>
-                  {rt.natureza === 'entregador_aeronave' ? (
+                  {rt.natureza === 'despacho' ? (
                     <div className="flex items-center gap-1.5 text-sm">
                       <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
                       {formatDate(rt.programacao)}

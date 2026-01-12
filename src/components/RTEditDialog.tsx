@@ -17,7 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { RT, NaturezaRT, naturezaLabels } from '@/types/rt';
+import { RT, NaturezaRT, ClassificacaoCarga, naturezaLabels, classificacaoLabels } from '@/types/rt';
 import { Edit3 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -28,6 +28,8 @@ interface RTEditDialogProps {
   onConfirm: (id: string, data: {
     numero: string;
     natureza: NaturezaRT;
+    descricao?: string;
+    classificacao: ClassificacaoCarga;
     origem: string;
     destino: string;
     programacao?: string;
@@ -46,7 +48,9 @@ export const RTEditDialog = ({
   const [motivo, setMotivo] = useState('');
   const [formData, setFormData] = useState({
     numero: '',
-    natureza: '' as NaturezaRT,
+    natureza: 'coleta' as NaturezaRT,
+    descricao: '',
+    classificacao: 'comum' as ClassificacaoCarga,
     origem: '',
     destino: '',
     programacao: '',
@@ -59,6 +63,8 @@ export const RTEditDialog = ({
       setFormData({
         numero: rt.numero,
         natureza: rt.natureza,
+        descricao: rt.descricao || '',
+        classificacao: rt.classificacao,
         origem: rt.origem,
         destino: rt.destino,
         programacao: rt.programacao || '',
@@ -80,12 +86,6 @@ export const RTEditDialog = ({
       return;
     }
 
-    // Programação só é válida para embarque
-    if (formData.natureza !== 'entregador_aeronave' && formData.programacao) {
-      toast.error('Data de programação só é permitida para natureza "Entregador para Aeronave"');
-      return;
-    }
-
     if (!rt) return;
 
     setIsSubmitting(true);
@@ -93,9 +93,11 @@ export const RTEditDialog = ({
       await onConfirm(rt.id, {
         numero: formData.numero.trim(),
         natureza: formData.natureza,
+        descricao: formData.descricao || undefined,
+        classificacao: formData.classificacao,
         origem: formData.origem.trim(),
         destino: formData.destino.trim(),
-        programacao: formData.natureza === 'entregador_aeronave' ? formData.programacao || undefined : undefined,
+        programacao: formData.natureza === 'despacho' ? formData.programacao || undefined : undefined,
         peso: parseFloat(formData.peso) || 0,
         valor: parseFloat(formData.valor) || 0,
       }, motivo.trim());
@@ -106,11 +108,11 @@ export const RTEditDialog = ({
     }
   };
 
-  const showProgramacao = formData.natureza === 'entregador_aeronave';
+  const showProgramacao = formData.natureza === 'despacho';
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Edit3 className="h-5 w-5 text-primary" />
@@ -136,7 +138,7 @@ export const RTEditDialog = ({
                 onValueChange={(value: NaturezaRT) => setFormData({ 
                   ...formData, 
                   natureza: value,
-                  programacao: value !== 'entregador_aeronave' ? '' : formData.programacao
+                  programacao: value !== 'despacho' ? '' : formData.programacao
                 })}
               >
                 <SelectTrigger>
@@ -151,7 +153,41 @@ export const RTEditDialog = ({
                 </SelectContent>
               </Select>
             </div>
-            
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="edit-descricao">Descrição</Label>
+            <Textarea
+              id="edit-descricao"
+              value={formData.descricao}
+              onChange={(e) => setFormData({ ...formData, descricao: e.target.value })}
+              rows={2}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="edit-classificacao">Classificação</Label>
+            <Select
+              value={formData.classificacao}
+              onValueChange={(value: ClassificacaoCarga) => setFormData({ 
+                ...formData, 
+                classificacao: value
+              })}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione" />
+              </SelectTrigger>
+              <SelectContent>
+                {Object.entries(classificacaoLabels).map(([value, label]) => (
+                  <SelectItem key={value} value={value}>
+                    {label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="edit-origem">Origem *</Label>
               <Input
