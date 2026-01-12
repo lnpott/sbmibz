@@ -10,7 +10,7 @@ import { SearchBar } from '@/components/SearchBar';
 import { AgentePicker } from '@/components/AgentePicker';
 import { Button } from '@/components/ui/button';
 import { Plus, Package, Loader2 } from 'lucide-react';
-import { RT, NaturezaRT, ClassificacaoCarga } from '@/types/rt';
+import { RT, NaturezaRT, ClassificacaoCarga, Agente } from '@/types/rt';
 
 const Index = () => {
   const { 
@@ -28,7 +28,8 @@ const Index = () => {
     updateColetor,
     addEmpresa,
     addLocal,
-    updateRT 
+    updateRT,
+    findColetorByCPF
   } = useRTs();
   
   const [showForm, setShowForm] = useState(false);
@@ -98,8 +99,8 @@ const Index = () => {
     }
   };
 
-  const handleAgenteSelect = (agenteId: string) => {
-    setSelectedAgente(agenteId);
+  const handleAgenteSelect = (agente: Agente) => {
+    setSelectedAgente(agente.id);
   };
 
   if (isLoading) {
@@ -161,9 +162,8 @@ const Index = () => {
               onAddLocal={addLocal}
               onAddColetor={addColetor}
               onAddEmpresa={addEmpresa}
-              onUpdateColetor={async (id, data) => {
-                await updateColetor({ id, data });
-              }}
+              onUpdateColetor={updateColetor}
+              findColetorByCPF={findColetorByCPF}
             />
           )}
 
