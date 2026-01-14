@@ -59,13 +59,14 @@ export const useRTs = () => {
       const { data, error } = await supabase
         .from('agentes')
         .select('*')
-        .eq('ativo', true)
         .order('nome');
       
       if (error) throw error;
       return data as Agente[];
     },
   });
+
+  const agentesAtivos = agentes.filter(a => a.ativo);
 
   const { data: empresas = [] } = useQuery({
     queryKey: ['empresas'],
@@ -403,6 +404,7 @@ export const useRTs = () => {
     coletores,
     locais,
     agentes,
+    agentesAtivos,
     empresas,
     isLoading,
     addRT: addRTMutation.mutateAsync,

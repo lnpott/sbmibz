@@ -11,18 +11,19 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Plus, Package, Loader2, LayoutGrid, List, Check, MoreHorizontal, Truck, Trash2, MapPin, Scale, DollarSign } from 'lucide-react';
+import { Plus, Package, Loader2, LayoutGrid, List, Check, MoreHorizontal, Truck, Trash2, MapPin, Scale, DollarSign, Settings } from 'lucide-react';
 import { RT, NaturezaRT, ClassificacaoCarga, naturezaLabels, classificacaoLabels } from '@/types/rt';
+import { Link } from 'react-router-dom';
 
 const Index = () => {
-  const { rts, coletores, locais, agentes, empresas, isLoading, addRT, updateStatus, deleteRT, addColetor, updateColetor, addEmpresa, addLocal, updateRT, findColetorByCPF } = useRTs();
+  const { rts, coletores, locais, agentesAtivos, empresas, isLoading, addRT, updateStatus, deleteRT, addColetor, updateColetor, addEmpresa, addLocal, updateRT, findColetorByCPF } = useRTs();
   
   const [showForm, setShowForm] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [printDialogOpen, setPrintDialogOpen] = useState(false);
   const [rtToPrint, setRtToPrint] = useState<RT | null>(null);
   
-  const currentAgente = useSavedAgente(agentes);
+  const currentAgente = useSavedAgente(agentesAtivos);
 
   const pendingDespacho = rts.filter(rt => (rt.natureza === 'despacho' || rt.natureza === 'transbordo') && rt.status !== 'despachada');
   const pendingColeta = rts.filter(rt => rt.natureza === 'coleta' && rt.status === 'pendente');
@@ -81,14 +82,21 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
-      <AgentePicker agentes={agentes} onSelect={() => {}} />
+      <AgentePicker agentes={agentesAtivos} onSelect={() => {}} />
       <div className="container mx-auto px-4 py-6 space-y-6 max-w-7xl">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold tracking-tight">Sistema de RTs</h1>
             {currentAgente && <p className="text-sm text-muted-foreground">Agente: <span className="font-medium text-foreground">{currentAgente.nome}</span></p>}
           </div>
-          <Button onClick={() => setShowForm(!showForm)} className="gradient-primary text-primary-foreground shadow-lg"><Plus className="h-4 w-4 mr-2" />Nova RT</Button>
+          <div className="flex items-center gap-2">
+            <Link to="/configuracoes">
+              <Button variant="outline" size="icon">
+                <Settings className="h-4 w-4" />
+              </Button>
+            </Link>
+            <Button onClick={() => setShowForm(!showForm)} className="gradient-primary text-primary-foreground shadow-lg"><Plus className="h-4 w-4 mr-2" />Nova RT</Button>
+          </div>
         </div>
 
         <StatsCards rts={rts} />
