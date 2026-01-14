@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { RT, StatusRT, naturezaLabels, classificacaoLabels, Coletor, NaturezaRT, ClassificacaoCarga } from '@/types/rt';
+import { RT, StatusRT, naturezaLabels, classificacaoLabels, Coletor, NaturezaRT, ClassificacaoCarga, Empresa } from '@/types/rt';
 import { StatusBadge } from './StatusBadge';
 import { ColetaDialog } from './ColetaDialog';
 import { RTEditDialog } from './RTEditDialog';
@@ -31,17 +31,17 @@ import { ptBR } from 'date-fns/locale';
 interface RTTableProps {
   rts: RT[];
   coletores: Coletor[];
-  empresas: { id: string; nome: string }[];
+  empresas: Empresa[];
   onUpdateStatus: (params: { id: string; status: StatusRT; coletorId?: string }) => Promise<void>;
   onDelete: (id: string) => Promise<void>;
   onAddColetor: (coletor: { nome: string; cpf: string; telefone?: string; email?: string; empresa_id?: string }) => Promise<Coletor>;
   onUpdateColetor: (params: { id: string; data: { nome?: string; telefone?: string; email?: string; empresa_id?: string } }) => Promise<void>;
-  onAddEmpresa: (empresa: { nome: string }) => Promise<{ id: string; nome: string }>;
+  onAddEmpresa: (empresa: { nome: string }) => Promise<Empresa>;
   findColetorByCPF: (cpf: string) => Coletor | undefined;
   onUpdateRT: (params: { id: string; data: { numero: string; natureza: NaturezaRT; descricao?: string; classificacao: ClassificacaoCarga; origem: string; destino: string; programacao?: string; peso: number; valor: number }; motivo: string; dadosAnteriores: RT }) => Promise<void>;
 }
 
-export const RTTable = ({ rts, coletores, onUpdateStatus, onDelete, onAddColetor, onUpdateRT }: RTTableProps) => {
+export const RTTable = ({ rts, coletores, empresas, onUpdateStatus, onDelete, onAddColetor, onUpdateColetor, onAddEmpresa, findColetorByCPF, onUpdateRT }: RTTableProps) => {
   const [coletaDialogOpen, setColetaDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [selectedRTId, setSelectedRTId] = useState<string | null>(null);
@@ -250,8 +250,12 @@ export const RTTable = ({ rts, coletores, onUpdateStatus, onDelete, onAddColetor
         open={coletaDialogOpen}
         onOpenChange={setColetaDialogOpen}
         coletores={coletores}
+        empresas={empresas}
         onConfirm={handleConfirmColeta}
         onAddColetor={onAddColetor}
+        onUpdateColetor={onUpdateColetor}
+        onAddEmpresa={onAddEmpresa}
+        findColetorByCPF={findColetorByCPF}
       />
 
       <RTEditDialog
