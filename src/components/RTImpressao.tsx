@@ -8,7 +8,7 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { RT, naturezaLabels, classificacaoLabels, Agente } from '@/types/rt';
-import { Printer, Package, MapPin, Calendar, Scale, DollarSign, User, Building2, FileText } from 'lucide-react';
+import { Printer, Package, MapPin, Calendar, Scale, DollarSign, User, Building2, FileText, History } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -72,6 +72,9 @@ export const RTImpressao = ({ open, onOpenChange, rt, agente }: RTImpressaoProps
             .badge-transbordo { background: #f3e8ff; color: #7c3aed; }
             .badge-comum { background: #e5e7eb; color: #374151; }
             .badge-fragil { background: #fee2e2; color: #991b1b; }
+            .historico { background: #f9fafb; border: 1px dashed #d1d5db; padding: 8px; margin-top: 10px; border-radius: 4px; }
+            .historico-title { font-size: 10px; color: #6b7280; margin-bottom: 5px; }
+            .historico-list { font-size: 11px; }
             .footer { margin-top: 20px; text-align: center; font-size: 10px; color: #666; border-top: 1px solid #ccc; padding-top: 10px; }
             @media print {
               body { padding: 10px; }
@@ -122,8 +125,12 @@ export const RTImpressao = ({ open, onOpenChange, rt, agente }: RTImpressaoProps
                 <div className="value" style={{ fontSize: '16px', fontWeight: 'bold' }}>{rt.numero}</div>
               </div>
               <div className="field">
-                <div className="label">Data de Cadastro</div>
-                <div className="value">{formatDateTime(rt.created_at)}</div>
+                <div className="label">Data de Entrada</div>
+                <div className="value">{formatDateTime(rt.data_recebimento_base || rt.created_at)}</div>
+              </div>
+              <div className="field">
+                <div className="label">Projeção de Saída</div>
+                <div className="value">{formatDateTime(rt.data_prevista_despacho)}</div>
               </div>
               <div className="field">
                 <div className="label">Natureza</div>
@@ -142,6 +149,15 @@ export const RTImpressao = ({ open, onOpenChange, rt, agente }: RTImpressaoProps
                 </div>
               </div>
             </div>
+            {rt.numeros_anteriores && rt.numeros_anteriores.length > 0 && (
+              <div className="historico">
+                <div className="historico-title">HISTÓRICO DE NUMERAÇÃO</div>
+                <div className="historico-list">
+                  <strong>Número atual:</strong> {rt.numero}<br />
+                  <strong>Número(s) anterior(es):</strong> {rt.numeros_anteriores.join(', ')}
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="section">

@@ -37,6 +37,7 @@ export interface Coletor {
 export interface RT {
   id: string;
   numero: string;
+  numeros_anteriores?: string[];
   natureza: NaturezaRT;
   descricao?: string;
   classificacao: ClassificacaoCarga;

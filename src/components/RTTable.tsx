@@ -24,7 +24,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { MoreHorizontal, Package, Truck, Trash2, MapPin, Calendar, Scale, DollarSign, Plane, User, Edit3 } from 'lucide-react';
+import { MoreHorizontal, Package, Truck, Trash2, MapPin, Calendar, Scale, DollarSign, Plane, User, Edit3, History } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -38,7 +38,7 @@ interface RTTableProps {
   onUpdateColetor: (params: { id: string; data: { nome?: string; telefone?: string; email?: string; empresa_id?: string } }) => Promise<void>;
   onAddEmpresa: (empresa: { nome: string }) => Promise<Empresa>;
   findColetorByCPF: (cpf: string) => Coletor | undefined;
-  onUpdateRT: (params: { id: string; data: { numero: string; natureza: NaturezaRT; descricao?: string; classificacao: ClassificacaoCarga; origem: string; destino: string; programacao?: string; peso: number; valor: number }; motivo: string; dadosAnteriores: RT }) => Promise<void>;
+  onUpdateRT: (params: { id: string; data: { numero: string; numeros_anteriores?: string[]; natureza: NaturezaRT; descricao?: string; classificacao: ClassificacaoCarga; origem: string; destino: string; programacao?: string; peso: number; valor: number }; motivo: string; dadosAnteriores: RT }) => Promise<void>;
 }
 
 export const RTTable = ({ rts, coletores, empresas, onUpdateStatus, onDelete, onAddColetor, onUpdateColetor, onAddEmpresa, findColetorByCPF, onUpdateRT }: RTTableProps) => {
@@ -88,6 +88,7 @@ export const RTTable = ({ rts, coletores, empresas, onUpdateStatus, onDelete, on
     id: string,
     data: {
       numero: string;
+      numeros_anteriores?: string[];
       natureza: NaturezaRT;
       descricao?: string;
       classificacao: ClassificacaoCarga;
@@ -140,7 +141,29 @@ export const RTTable = ({ rts, coletores, empresas, onUpdateStatus, onDelete, on
           <TableBody>
             {rts.map((rt) => (
               <TableRow key={rt.id} className="hover:bg-muted/30 transition-colors">
-                <TableCell className="font-medium">{rt.numero}</TableCell>
+                <TableCell className="font-medium">
+                  <div className="flex items-center gap-1.5">
+                    {rt.numero}
+                    {rt.numeros_anteriores && rt.numeros_anteriores.length > 0 && (
+                      <Tooltip>
+                        <TooltipTrigger>
+                          <Badge variant="outline" className="text-xs gap-0.5 px-1">
+                            <History className="h-2.5 w-2.5" />
+                            {rt.numeros_anteriores.length}
+                          </Badge>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <div className="text-xs">
+                            <p className="font-medium mb-1">Números anteriores:</p>
+                            {rt.numeros_anteriores.map((num, idx) => (
+                              <p key={idx}>{num}</p>
+                            ))}
+                          </div>
+                        </TooltipContent>
+                      </Tooltip>
+                    )}
+                  </div>
+                </TableCell>
                 <TableCell>
                   <Badge variant="outline" className="flex items-center gap-1 w-fit">
                     <Plane className="h-3 w-3" />
