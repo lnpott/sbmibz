@@ -17,7 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { RT, NaturezaRT, ClassificacaoCarga, naturezaLabels, classificacaoLabels } from '@/types/rt';
+import { RT, NaturezaRT, ClassificacaoCarga, TipoRecebimento, FinalidadeRT, naturezaLabels, classificacaoLabels, tipoRecebimentoLabels, finalidadeLabels, getNaturezaInfo, buildNatureza, isParaDespacho } from '@/types/rt';
 import { Edit3, History } from 'lucide-react';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
@@ -50,7 +50,8 @@ export const RTEditDialog = ({
   const [motivo, setMotivo] = useState('');
   const [formData, setFormData] = useState({
     numero: '',
-    natureza: 'coleta' as NaturezaRT,
+    tipoRecebimento: '' as TipoRecebimento | '',
+    finalidade: '' as FinalidadeRT | '',
     descricao: '',
     classificacao: 'comum' as ClassificacaoCarga,
     origem: '',
@@ -62,9 +63,11 @@ export const RTEditDialog = ({
 
   useEffect(() => {
     if (rt) {
+      const info = getNaturezaInfo(rt.natureza);
       setFormData({
         numero: rt.numero,
-        natureza: rt.natureza,
+        tipoRecebimento: info.tipo || 'aereo',
+        finalidade: info.finalidade,
         descricao: rt.descricao || '',
         classificacao: rt.classificacao,
         origem: rt.origem,
@@ -93,7 +96,7 @@ export const RTEditDialog = ({
       return;
     }
 
-    if (!formData.numero || !formData.natureza || !formData.origem || !formData.destino) {
+    if (!formData.numero || !formData.tipoRecebimento || !formData.finalidade || !formData.origem || !formData.destino) {
       toast.error('Preencha os campos obrigatórios');
       return;
     }
@@ -104,6 +107,8 @@ export const RTEditDialog = ({
     }
 
     if (!rt) return;
+
+    const natureza = buildNatureza(formData.tipoRecebimento as TipoRecebimento, formData.finalidade as FinalidadeRT);
 
     setIsSubmitting(true);
     try {
@@ -116,12 +121,12 @@ export const RTEditDialog = ({
       await onConfirm(rt.id, {
         numero: formData.numero.trim(),
         numeros_anteriores: numeros_anteriores.length > 0 ? numeros_anteriores : undefined,
-        natureza: formData.natureza,
+        natureza: natureza,
         descricao: formData.descricao || undefined,
         classificacao: formData.classificacao,
         origem: formData.origem.trim(),
         destino: formData.destino.trim(),
-        programacao: formData.natureza === 'despacho' ? formData.programacao || undefined : undefined,
+        programacao: isParaDespacho(natureza) ? formData.programacao || undefined : undefined,
         peso: parseFloat(formData.peso) || 0,
         valor: parseFloat(formData.valor) || 0,
       }, motivo.trim());
@@ -132,7 +137,10 @@ export const RTEditDialog = ({
     }
   };
 
-  const showProgramacao = formData.natureza === 'despacho';
+  const showProgramacao = formData.finalidade === 'despacho';
+  const finalidadeOptions = formData.tipoRecebimento === 'terrestre' 
+    ? (['despacho', 'coleta'] as FinalidadeRT[])
+    : (['despacho', 'coleta', 'transbordo'] as FinalidadeRT[]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -174,20 +182,20 @@ export const RTEditDialog = ({
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="edit-natureza">Natureza *</Label>
+              <Label htmlFor="edit-tipoRecebimento">Tipo de Recebimento *</Label>
               <Select
-                value={formData.natureza}
-                onValueChange={(value: NaturezaRT) => setFormData({ 
+                value={formData.tipoRecebimento}
+                onValueChange={(value: TipoRecebimento) => setFormData({ 
                   ...formData, 
-                  natureza: value,
-                  programacao: value !== 'despacho' ? '' : formData.programacao
+                  tipoRecebimento: value,
+                  finalidade: value === 'terrestre' && formData.finalidade === 'transbordo' ? 'despacho' : formData.finalidade
                 })}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Selecione" />
                 </SelectTrigger>
                 <SelectContent>
-                  {Object.entries(naturezaLabels).map(([value, label]) => (
+                  {Object.entries(tipoRecebimentoLabels).map(([value, label]) => (
                     <SelectItem key={value} value={value}>
                       {label}
                     </SelectItem>
@@ -196,6 +204,31 @@ export const RTEditDialog = ({
               </Select>
             </div>
           </div>
+
+          {formData.tipoRecebimento && (
+            <div className="space-y-2">
+              <Label htmlFor="edit-finalidade">Finalidade *</Label>
+              <Select
+                value={formData.finalidade}
+                onValueChange={(value: FinalidadeRT) => setFormData({ 
+                  ...formData, 
+                  finalidade: value,
+                  programacao: value !== 'despacho' ? '' : formData.programacao
+                })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione" />
+                </SelectTrigger>
+                <SelectContent>
+                  {finalidadeOptions.map((value) => (
+                    <SelectItem key={value} value={value}>
+                      {finalidadeLabels[value]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
 
           <div className="space-y-2">
             <Label htmlFor="edit-descricao">Descrição</Label>

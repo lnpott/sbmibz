@@ -15,7 +15,7 @@ import { Plus, Package, Loader2, LayoutGrid, List, Check, MoreHorizontal, Truck,
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { RT, NaturezaRT, ClassificacaoCarga, naturezaLabels, classificacaoLabels } from '@/types/rt';
+import { RT, NaturezaRT, ClassificacaoCarga, naturezaLabels, classificacaoLabels, isParaDespacho, isParaColeta } from '@/types/rt';
 import { Link } from 'react-router-dom';
 
 const Index = () => {
@@ -28,9 +28,9 @@ const Index = () => {
   
   const currentAgente = useSavedAgente(agentesAtivos);
 
-  const pendingDespacho = rts.filter(rt => (rt.natureza === 'despacho' || rt.natureza === 'transbordo') && rt.status !== 'despachada');
-  const pendingColeta = rts.filter(rt => rt.natureza === 'coleta' && rt.status === 'pendente');
-  const concluidas = rts.filter(rt => rt.status === 'despachada');
+  const pendingDespacho = rts.filter(rt => isParaDespacho(rt.natureza) && rt.status !== 'despachada');
+  const pendingColeta = rts.filter(rt => isParaColeta(rt.natureza) && rt.status === 'pendente');
+  const concluidas = rts.filter(rt => rt.status === 'despachada' || rt.status === 'coletada');
 
   const filteredRTs = rts.filter(rt => {
     if (!searchQuery.trim()) return true;

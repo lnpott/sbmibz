@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { RT, StatusRT, naturezaLabels, classificacaoLabels, Coletor, NaturezaRT, ClassificacaoCarga, Empresa } from '@/types/rt';
+import { RT, StatusRT, naturezaLabels, classificacaoLabels, Coletor, NaturezaRT, ClassificacaoCarga, Empresa, isParaDespacho } from '@/types/rt';
 import { StatusBadge } from './StatusBadge';
 import { ColetaDialog } from './ColetaDialog';
 import { RTEditDialog } from './RTEditDialog';
@@ -184,7 +184,7 @@ export const RTTable = ({ rts, coletores, empresas, onUpdateStatus, onDelete, on
                   </div>
                 </TableCell>
                 <TableCell>
-                  {rt.natureza === 'despacho' ? (
+                  {isParaDespacho(rt.natureza) ? (
                     <div className="flex items-center gap-1.5 text-sm">
                       <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
                       {formatDate(rt.programacao)}
