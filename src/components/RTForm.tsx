@@ -12,7 +12,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Plus, X, Search } from 'lucide-react';
-import { NaturezaRT, ClassificacaoCarga, naturezaLabels, classificacaoLabels, Local, Coletor, Empresa, Agente } from '@/types/rt';
+import { NaturezaRT, ClassificacaoCarga, TipoRecebimento, FinalidadeRT, tipoRecebimentoLabels, finalidadeLabels, classificacaoLabels, Local, Coletor, Empresa, Agente, buildNatureza, isAereo, isParaDespacho } from '@/types/rt';
 import { toast } from 'sonner';
 import { LocalSearchDialog } from './LocalSearchDialog';
 import { PessoaSearchDialog } from './PessoaSearchDialog';
@@ -67,7 +67,8 @@ export const RTForm = ({
   
   const [formData, setFormData] = useState({
     numero: '',
-    natureza: '' as NaturezaRT | '',
+    tipoRecebimento: '' as TipoRecebimento | '',
+    finalidade: '' as FinalidadeRT | '',
     descricao: '',
     classificacao: 'comum' as ClassificacaoCarga,
     origem: '',
@@ -81,6 +82,7 @@ export const RTForm = ({
     valor: '',
     entregador_id: '',
     entregador_nome: '',
+    companhia_aerea: '',
   });
 
   const validateNumeroRT = (numero: string): boolean => {
@@ -96,7 +98,7 @@ export const RTForm = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.numero || !formData.natureza || !formData.origem || !formData.destino) {
+    if (!formData.numero || !formData.tipoRecebimento || !formData.finalidade || !formData.origem || !formData.destino) {
       toast.error('Preencha os campos obrigatórios');
       return;
     }
@@ -111,7 +113,9 @@ export const RTForm = ({
       return;
     }
 
-    if (formData.natureza === 'despacho' && !formData.programacao) {
+    const natureza = buildNatureza(formData.tipoRecebimento as TipoRecebimento, formData.finalidade as FinalidadeRT);
+
+    if (isParaDespacho(natureza) && !formData.programacao) {
       toast.error('Programação é obrigatória para Despacho');
       return;
     }
@@ -120,7 +124,7 @@ export const RTForm = ({
     try {
       await onSubmit({
         numero: formData.numero.trim(),
-        natureza: formData.natureza as NaturezaRT,
+        natureza: natureza,
         descricao: formData.descricao.trim() || undefined,
         classificacao: formData.classificacao,
         origem: formData.origem.trim(),
@@ -137,17 +141,22 @@ export const RTForm = ({
       });
 
       setFormData({
-        numero: '', natureza: '', descricao: '', classificacao: 'comum',
+        numero: '', tipoRecebimento: '', finalidade: '', descricao: '', classificacao: 'comum',
         origem: '', origem_id: '', destino: '', destino_id: '',
         programacao: '', data_recebimento_base: '', data_prevista_despacho: '',
-        peso: '', valor: '', entregador_id: '', entregador_nome: '',
+        peso: '', valor: '', entregador_id: '', entregador_nome: '', companhia_aerea: '',
       });
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const showProgramacao = formData.natureza === 'despacho';
+  const showProgramacao = formData.finalidade === 'despacho';
+  const showCompanhiaAerea = formData.tipoRecebimento === 'aereo';
+  const showEntregador = formData.tipoRecebimento === 'terrestre';
+  const finalidadeOptions = formData.tipoRecebimento === 'terrestre' 
+    ? (['despacho', 'coleta'] as FinalidadeRT[])
+    : (['despacho', 'coleta', 'transbordo'] as FinalidadeRT[]);
 
   return (
     <>
@@ -187,17 +196,39 @@ export const RTForm = ({
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="natureza">Natureza *</Label>
-              <Select value={formData.natureza}
-                onValueChange={(value: NaturezaRT) => setFormData({ ...formData, natureza: value })}>
+              <Label htmlFor="tipoRecebimento">Tipo de Recebimento *</Label>
+              <Select value={formData.tipoRecebimento}
+                onValueChange={(value: TipoRecebimento) => setFormData({ 
+                  ...formData, 
+                  tipoRecebimento: value,
+                  finalidade: value === 'terrestre' && formData.finalidade === 'transbordo' ? '' : formData.finalidade,
+                  entregador_id: value === 'aereo' ? '' : formData.entregador_id,
+                  entregador_nome: value === 'aereo' ? '' : formData.entregador_nome,
+                  companhia_aerea: value === 'terrestre' ? '' : formData.companhia_aerea,
+                })}>
                 <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                 <SelectContent>
-                  {Object.entries(naturezaLabels).map(([value, label]) => (
+                  {Object.entries(tipoRecebimentoLabels).map(([value, label]) => (
                     <SelectItem key={value} value={value}>{label}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
+
+            {formData.tipoRecebimento && (
+              <div className="space-y-2">
+                <Label htmlFor="finalidade">Finalidade *</Label>
+                <Select value={formData.finalidade}
+                  onValueChange={(value: FinalidadeRT) => setFormData({ ...formData, finalidade: value })}>
+                  <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                  <SelectContent>
+                    {finalidadeOptions.map((value) => (
+                      <SelectItem key={value} value={value}>{finalidadeLabels[value]}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
 
             <div className="space-y-2">
               <Label htmlFor="classificacao">Classificação *</Label>
@@ -253,15 +284,29 @@ export const RTForm = ({
                 onChange={(e) => setFormData({ ...formData, data_prevista_despacho: e.target.value })} />
             </div>
 
-            <div className="space-y-2">
-              <Label>Entregador</Label>
-              <div className="flex gap-2">
-                <Input value={formData.entregador_nome} readOnly placeholder="Opcional..." className="flex-1" />
-                <Button type="button" variant="outline" size="icon" onClick={() => setEntregadorDialogOpen(true)}>
-                  <Search className="h-4 w-4" />
-                </Button>
+            {showCompanhiaAerea && (
+              <div className="space-y-2">
+                <Label htmlFor="companhia_aerea">Companhia Aérea</Label>
+                <Input 
+                  id="companhia_aerea" 
+                  placeholder="Ex: LATAM, GOL, AZUL..." 
+                  value={formData.companhia_aerea}
+                  onChange={(e) => setFormData({ ...formData, companhia_aerea: e.target.value })}
+                />
               </div>
-            </div>
+            )}
+
+            {showEntregador && (
+              <div className="space-y-2">
+                <Label>Entregador</Label>
+                <div className="flex gap-2">
+                  <Input value={formData.entregador_nome} readOnly placeholder="Opcional..." className="flex-1" />
+                  <Button type="button" variant="outline" size="icon" onClick={() => setEntregadorDialogOpen(true)}>
+                    <Search className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            )}
             
             <div className="space-y-2">
               <Label htmlFor="peso">Peso (kg)</Label>

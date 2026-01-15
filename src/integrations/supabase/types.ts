@@ -316,7 +316,15 @@ export type Database = {
     }
     Enums: {
       classificacao_carga: "comum" | "fragil"
-      natureza_rt: "coleta" | "despacho" | "transbordo"
+      natureza_rt:
+        | "coleta"
+        | "despacho"
+        | "transbordo"
+        | "aereo_despacho"
+        | "aereo_coleta"
+        | "aereo_transbordo"
+        | "terrestre_despacho"
+        | "terrestre_coleta"
       status_rt: "pendente" | "coletada" | "despachada"
     }
     CompositeTypes: {
@@ -446,7 +454,16 @@ export const Constants = {
   public: {
     Enums: {
       classificacao_carga: ["comum", "fragil"],
-      natureza_rt: ["coleta", "despacho", "transbordo"],
+      natureza_rt: [
+        "coleta",
+        "despacho",
+        "transbordo",
+        "aereo_despacho",
+        "aereo_coleta",
+        "aereo_transbordo",
+        "terrestre_despacho",
+        "terrestre_coleta",
+      ],
       status_rt: ["pendente", "coletada", "despachada"],
     },
   },

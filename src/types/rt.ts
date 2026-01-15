@@ -1,4 +1,6 @@
-export type NaturezaRT = 'coleta' | 'despacho' | 'transbordo';
+export type NaturezaRT = 'coleta' | 'despacho' | 'transbordo' | 'aereo_despacho' | 'aereo_coleta' | 'aereo_transbordo' | 'terrestre_despacho' | 'terrestre_coleta';
+export type TipoRecebimento = 'aereo' | 'terrestre';
+export type FinalidadeRT = 'despacho' | 'coleta' | 'transbordo';
 export type StatusRT = 'pendente' | 'coletada' | 'despachada';
 export type ClassificacaoCarga = 'comum' | 'fragil';
 
@@ -67,9 +69,57 @@ export const naturezaLabels: Record<NaturezaRT, string> = {
   'coleta': 'Coleta',
   'despacho': 'Despacho',
   'transbordo': 'Transbordo',
+  'aereo_despacho': 'Aéreo → Despacho',
+  'aereo_coleta': 'Aéreo → Coleta',
+  'aereo_transbordo': 'Aéreo → Transbordo',
+  'terrestre_despacho': 'Terrestre → Despacho',
+  'terrestre_coleta': 'Terrestre → Coleta',
+};
+
+export const tipoRecebimentoLabels: Record<TipoRecebimento, string> = {
+  'aereo': 'Recebimento AÉREO',
+  'terrestre': 'Recebimento TERRESTRE',
+};
+
+export const finalidadeLabels: Record<FinalidadeRT, string> = {
+  'despacho': 'Para Despacho',
+  'coleta': 'Para Coleta',
+  'transbordo': 'Transbordo',
 };
 
 export const classificacaoLabels: Record<ClassificacaoCarga, string> = {
   'comum': 'Comum',
   'fragil': 'Frágil',
+};
+
+// Helpers para determinar tipo e finalidade a partir da natureza
+export const getNaturezaInfo = (natureza: NaturezaRT): { tipo: TipoRecebimento | null; finalidade: FinalidadeRT } => {
+  if (natureza.startsWith('aereo_')) {
+    return { tipo: 'aereo', finalidade: natureza.replace('aereo_', '') as FinalidadeRT };
+  }
+  if (natureza.startsWith('terrestre_')) {
+    return { tipo: 'terrestre', finalidade: natureza.replace('terrestre_', '') as FinalidadeRT };
+  }
+  // Legado
+  return { tipo: null, finalidade: natureza as FinalidadeRT };
+};
+
+export const buildNatureza = (tipo: TipoRecebimento, finalidade: FinalidadeRT): NaturezaRT => {
+  return `${tipo}_${finalidade}` as NaturezaRT;
+};
+
+export const isAereo = (natureza: NaturezaRT): boolean => {
+  return natureza.startsWith('aereo_') || natureza === 'transbordo';
+};
+
+export const isTerrestre = (natureza: NaturezaRT): boolean => {
+  return natureza.startsWith('terrestre_');
+};
+
+export const isParaDespacho = (natureza: NaturezaRT): boolean => {
+  return natureza === 'despacho' || natureza.endsWith('_despacho');
+};
+
+export const isParaColeta = (natureza: NaturezaRT): boolean => {
+  return natureza === 'coleta' || natureza.endsWith('_coleta');
 };
