@@ -18,8 +18,9 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { RT, NaturezaRT, ClassificacaoCarga, naturezaLabels, classificacaoLabels } from '@/types/rt';
-import { Edit3 } from 'lucide-react';
+import { Edit3, History } from 'lucide-react';
 import { toast } from 'sonner';
+import { Badge } from '@/components/ui/badge';
 
 interface RTEditDialogProps {
   open: boolean;
@@ -27,6 +28,7 @@ interface RTEditDialogProps {
   rt: RT | null;
   onConfirm: (id: string, data: {
     numero: string;
+    numeros_anteriores?: string[];
     natureza: NaturezaRT;
     descricao?: string;
     classificacao: ClassificacaoCarga;
@@ -75,6 +77,16 @@ export const RTEditDialog = ({
     }
   }, [rt]);
 
+  const validateNumeroRT = (numero: string): boolean => {
+    const onlyDigits = numero.replace(/\D/g, '');
+    return onlyDigits.length === 9;
+  };
+
+  const handleNumeroChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value.replace(/\D/g, '').slice(0, 9);
+    setFormData({ ...formData, numero: value });
+  };
+
   const handleSubmit = async () => {
     if (!motivo.trim()) {
       toast.error('O motivo da edição é obrigatório');
@@ -86,12 +98,24 @@ export const RTEditDialog = ({
       return;
     }
 
+    if (!validateNumeroRT(formData.numero)) {
+      toast.error('O número da RT deve conter exatamente 9 dígitos');
+      return;
+    }
+
     if (!rt) return;
 
     setIsSubmitting(true);
     try {
+      // Se o número foi alterado, adicionar ao histórico
+      let numeros_anteriores = rt.numeros_anteriores || [];
+      if (formData.numero.trim() !== rt.numero) {
+        numeros_anteriores = [...numeros_anteriores, rt.numero];
+      }
+
       await onConfirm(rt.id, {
         numero: formData.numero.trim(),
+        numeros_anteriores: numeros_anteriores.length > 0 ? numeros_anteriores : undefined,
         natureza: formData.natureza,
         descricao: formData.descricao || undefined,
         classificacao: formData.classificacao,
@@ -121,14 +145,32 @@ export const RTEditDialog = ({
         </DialogHeader>
 
         <div className="grid gap-4 py-4">
+          {rt?.numeros_anteriores && rt.numeros_anteriores.length > 0 && (
+            <div className="flex items-center gap-2 p-2 bg-muted rounded-md">
+              <History className="h-4 w-4 text-muted-foreground" />
+              <span className="text-xs text-muted-foreground">Números anteriores:</span>
+              <div className="flex flex-wrap gap-1">
+                {rt.numeros_anteriores.map((num, idx) => (
+                  <Badge key={idx} variant="secondary" className="text-xs">{num}</Badge>
+                ))}
+              </div>
+            </div>
+          )}
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="edit-numero">Número *</Label>
-              <Input
-                id="edit-numero"
-                value={formData.numero}
-                onChange={(e) => setFormData({ ...formData, numero: e.target.value })}
-              />
+              <Label htmlFor="edit-numero">Número * (9 dígitos)</Label>
+              <div className="relative">
+                <Input
+                  id="edit-numero"
+                  value={formData.numero}
+                  onChange={handleNumeroChange}
+                  maxLength={9}
+                  className={formData.numero && formData.numero.length !== 9 ? 'border-destructive' : ''}
+                />
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
+                  {formData.numero.length}/9
+                </span>
+              </div>
             </div>
             
             <div className="space-y-2">

@@ -311,6 +311,7 @@ export const useRTs = () => {
       id: string; 
       data: {
         numero: string;
+        numeros_anteriores?: string[];
         natureza: NaturezaRT;
         descricao?: string;
         classificacao: ClassificacaoCarga;
@@ -331,6 +332,7 @@ export const useRTs = () => {
         .from('rts')
         .update({
           numero: data.numero,
+          numeros_anteriores: data.numeros_anteriores || [],
           natureza: data.natureza,
           descricao: data.descricao || null,
           classificacao: data.classificacao,
@@ -355,6 +357,7 @@ export const useRTs = () => {
           motivo: motivo,
           dados_anteriores: {
             numero: dadosAnteriores.numero,
+            numeros_anteriores: dadosAnteriores.numeros_anteriores,
             natureza: dadosAnteriores.natureza,
             descricao: dadosAnteriores.descricao,
             classificacao: dadosAnteriores.classificacao,

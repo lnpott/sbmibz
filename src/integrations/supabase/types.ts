@@ -203,6 +203,7 @@ export type Database = {
           id: string
           natureza: Database["public"]["Enums"]["natureza_rt"]
           numero: string
+          numeros_anteriores: string[] | null
           origem: string
           origem_id: string | null
           peso: number
@@ -227,6 +228,7 @@ export type Database = {
           id?: string
           natureza: Database["public"]["Enums"]["natureza_rt"]
           numero: string
+          numeros_anteriores?: string[] | null
           origem: string
           origem_id?: string | null
           peso?: number
@@ -251,6 +253,7 @@ export type Database = {
           id?: string
           natureza?: Database["public"]["Enums"]["natureza_rt"]
           numero?: string
+          numeros_anteriores?: string[] | null
           origem?: string
           origem_id?: string | null
           peso?: number

@@ -11,7 +11,10 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Plus, Package, Loader2, LayoutGrid, List, Check, MoreHorizontal, Truck, Trash2, MapPin, Scale, DollarSign, Settings } from 'lucide-react';
+import { Plus, Package, Loader2, LayoutGrid, List, Check, MoreHorizontal, Truck, Trash2, MapPin, Scale, DollarSign, Settings, Calendar, History } from 'lucide-react';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { RT, NaturezaRT, ClassificacaoCarga, naturezaLabels, classificacaoLabels } from '@/types/rt';
 import { Link } from 'react-router-dom';
 
@@ -54,11 +57,34 @@ const Index = () => {
     );
   }
 
+  const formatDateTime = (date: string | undefined | null) => {
+    if (!date) return '-';
+    return format(new Date(date), "dd/MM/yyyy HH:mm", { locale: ptBR });
+  };
+
   const RTCardItem = ({ rt, showColeta, completed }: { rt: RT; showColeta?: boolean; completed?: boolean }) => (
     <div className={`p-3 rounded-lg border transition-shadow hover:shadow-md ${completed ? 'bg-muted/50 opacity-75' : 'bg-background'}`}>
       <div className="flex items-start justify-between mb-2">
         <div className="flex items-center gap-2 flex-wrap">
           <span className="font-semibold text-sm">{rt.numero}</span>
+          {rt.numeros_anteriores && rt.numeros_anteriores.length > 0 && (
+            <Tooltip>
+              <TooltipTrigger>
+                <Badge variant="outline" className="text-xs gap-1">
+                  <History className="h-2.5 w-2.5" />
+                  {rt.numeros_anteriores.length}
+                </Badge>
+              </TooltipTrigger>
+              <TooltipContent>
+                <div className="text-xs">
+                  <p className="font-medium mb-1">Números anteriores:</p>
+                  {rt.numeros_anteriores.map((num, idx) => (
+                    <p key={idx}>{num}</p>
+                  ))}
+                </div>
+              </TooltipContent>
+            </Tooltip>
+          )}
           <Badge variant="outline" className="text-xs">{naturezaLabels[rt.natureza]}</Badge>
           <Badge variant={rt.classificacao === 'fragil' ? 'destructive' : 'secondary'} className="text-xs">{classificacaoLabels[rt.classificacao]}</Badge>
         </div>
@@ -72,6 +98,17 @@ const Index = () => {
       </div>
       <div className="space-y-1.5 text-xs text-muted-foreground">
         <div className="flex items-center gap-1"><MapPin className="h-3 w-3" /><span>{rt.origem} → {rt.destino}</span></div>
+        <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-1">
+            <Calendar className="h-3 w-3" />
+            <span>Entrada: {formatDateTime(rt.data_recebimento_base || rt.created_at)}</span>
+          </div>
+          {rt.data_prevista_despacho && (
+            <div className="flex items-center gap-1">
+              <span>Saída: {formatDateTime(rt.data_prevista_despacho)}</span>
+            </div>
+          )}
+        </div>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-1"><Scale className="h-3 w-3" /><span>{Number(rt.peso).toFixed(2)} kg</span></div>
           <div className="flex items-center gap-1"><DollarSign className="h-3 w-3" /><span>{formatCurrency(Number(rt.valor))}</span></div>

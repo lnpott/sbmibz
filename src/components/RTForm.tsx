@@ -83,11 +83,31 @@ export const RTForm = ({
     entregador_nome: '',
   });
 
+  const validateNumeroRT = (numero: string): boolean => {
+    const onlyDigits = numero.replace(/\D/g, '');
+    return onlyDigits.length === 9;
+  };
+
+  const handleNumeroChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value.replace(/\D/g, '').slice(0, 9);
+    setFormData({ ...formData, numero: value });
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!formData.numero || !formData.natureza || !formData.origem || !formData.destino) {
       toast.error('Preencha os campos obrigatórios');
+      return;
+    }
+
+    if (!validateNumeroRT(formData.numero)) {
+      toast.error('O número da RT deve conter exatamente 9 dígitos');
+      return;
+    }
+
+    if (!formData.data_recebimento_base) {
+      toast.error('A data de entrada é obrigatória');
       return;
     }
 
@@ -150,9 +170,20 @@ export const RTForm = ({
         <CardContent>
           <form onSubmit={handleSubmit} className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <div className="space-y-2">
-              <Label htmlFor="numero">Número *</Label>
-              <Input id="numero" placeholder="Ex: RT-001" value={formData.numero}
-                onChange={(e) => setFormData({ ...formData, numero: e.target.value })} />
+              <Label htmlFor="numero">Número * (9 dígitos)</Label>
+              <div className="relative">
+                <Input 
+                  id="numero" 
+                  placeholder="000000000" 
+                  value={formData.numero}
+                  onChange={handleNumeroChange}
+                  maxLength={9}
+                  className={formData.numero && formData.numero.length !== 9 ? 'border-destructive' : ''}
+                />
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
+                  {formData.numero.length}/9
+                </span>
+              </div>
             </div>
             
             <div className="space-y-2">
@@ -210,13 +241,14 @@ export const RTForm = ({
             )}
 
             <div className="space-y-2">
-              <Label htmlFor="data_recebimento">Data Recebimento Base</Label>
+              <Label htmlFor="data_recebimento">Data de Entrada *</Label>
               <Input id="data_recebimento" type="datetime-local" value={formData.data_recebimento_base}
-                onChange={(e) => setFormData({ ...formData, data_recebimento_base: e.target.value })} />
+                onChange={(e) => setFormData({ ...formData, data_recebimento_base: e.target.value })}
+                required />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="data_despacho">Previsão Despacho</Label>
+              <Label htmlFor="data_despacho">Projeção de Saída</Label>
               <Input id="data_despacho" type="datetime-local" value={formData.data_prevista_despacho}
                 onChange={(e) => setFormData({ ...formData, data_prevista_despacho: e.target.value })} />
             </div>
