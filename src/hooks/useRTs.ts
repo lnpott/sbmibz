@@ -143,12 +143,18 @@ export const useRTs = () => {
       id, 
       status, 
       coletorId,
-      entregadorId 
+      entregadorId,
+      cia_aerea,
+      numero_voo,
+      observacao_despacho,
     }: { 
       id: string; 
       status: StatusRT; 
       coletorId?: string;
       entregadorId?: string;
+      cia_aerea?: string;
+      numero_voo?: string;
+      observacao_despacho?: string;
     }) => {
       const updates: Record<string, unknown> = { status };
       
@@ -162,6 +168,23 @@ export const useRTs = () => {
         if (entregadorId) {
           updates.entregador_id = entregadorId;
         }
+        if (cia_aerea) {
+          updates.cia_aerea = cia_aerea;
+        }
+        if (numero_voo) {
+          updates.numero_voo = numero_voo;
+        }
+        if (observacao_despacho) {
+          updates.observacao_despacho = observacao_despacho;
+        }
+      } else if (status === 'pendente') {
+        // Ao reverter para pendente, limpar dados de coleta/despacho
+        updates.coletada_em = null;
+        updates.coletor_id = null;
+        updates.despachada_em = null;
+        updates.cia_aerea = null;
+        updates.numero_voo = null;
+        updates.observacao_despacho = null;
       }
 
       const { error } = await supabase
@@ -174,7 +197,7 @@ export const useRTs = () => {
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['rts'] });
       const statusMessages: Record<StatusRT, string> = {
-        pendente: 'RT marcada como pendente!',
+        pendente: 'RT retornada para pendente!',
         coletada: 'RT marcada como coletada!',
         despachada: 'RT marcada como despachada!',
       };
@@ -182,6 +205,30 @@ export const useRTs = () => {
     },
     onError: (error: Error) => {
       toast.error(`Erro ao atualizar status: ${error.message}`);
+    },
+  });
+
+  const revertToColetadaMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from('rts')
+        .update({
+          status: 'coletada',
+          despachada_em: null,
+          cia_aerea: null,
+          numero_voo: null,
+          observacao_despacho: null,
+        })
+        .eq('id', id);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['rts'] });
+      toast.success('RT retornada para coletada!');
+    },
+    onError: (error: Error) => {
+      toast.error(`Erro ao reverter status: ${error.message}`);
     },
   });
 
@@ -412,6 +459,7 @@ export const useRTs = () => {
     isLoading,
     addRT: addRTMutation.mutateAsync,
     updateStatus: updateStatusMutation.mutateAsync,
+    revertToColetada: revertToColetadaMutation.mutateAsync,
     addColetor: addColetorMutation.mutateAsync,
     updateColetor: updateColetorMutation.mutateAsync,
     addEmpresa: addEmpresaMutation.mutateAsync,

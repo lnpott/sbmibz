@@ -189,6 +189,7 @@ export type Database = {
       rts: {
         Row: {
           agente_id: string | null
+          cia_aerea: string | null
           classificacao: Database["public"]["Enums"]["classificacao_carga"]
           coletada_em: string | null
           coletor_id: string | null
@@ -203,7 +204,9 @@ export type Database = {
           id: string
           natureza: Database["public"]["Enums"]["natureza_rt"]
           numero: string
+          numero_voo: string | null
           numeros_anteriores: string[] | null
+          observacao_despacho: string | null
           origem: string
           origem_id: string | null
           peso: number
@@ -214,6 +217,7 @@ export type Database = {
         }
         Insert: {
           agente_id?: string | null
+          cia_aerea?: string | null
           classificacao?: Database["public"]["Enums"]["classificacao_carga"]
           coletada_em?: string | null
           coletor_id?: string | null
@@ -228,7 +232,9 @@ export type Database = {
           id?: string
           natureza: Database["public"]["Enums"]["natureza_rt"]
           numero: string
+          numero_voo?: string | null
           numeros_anteriores?: string[] | null
+          observacao_despacho?: string | null
           origem: string
           origem_id?: string | null
           peso?: number
@@ -239,6 +245,7 @@ export type Database = {
         }
         Update: {
           agente_id?: string | null
+          cia_aerea?: string | null
           classificacao?: Database["public"]["Enums"]["classificacao_carga"]
           coletada_em?: string | null
           coletor_id?: string | null
@@ -253,7 +260,9 @@ export type Database = {
           id?: string
           natureza?: Database["public"]["Enums"]["natureza_rt"]
           numero?: string
+          numero_voo?: string | null
           numeros_anteriores?: string[] | null
+          observacao_despacho?: string | null
           origem?: string
           origem_id?: string | null
           peso?: number

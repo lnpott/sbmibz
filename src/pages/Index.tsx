@@ -6,25 +6,32 @@ import { RTForm } from '@/components/RTForm';
 import { RTTable } from '@/components/RTTable';
 import { RTImpressao } from '@/components/RTImpressao';
 import { AgentePicker, useSavedAgente } from '@/components/AgentePicker';
+import { ColetaDialog } from '@/components/ColetaDialog';
+import { DespachoDialog } from '@/components/DespachoDialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Plus, Package, Loader2, LayoutGrid, List, Check, MoreHorizontal, Truck, Trash2, MapPin, Scale, DollarSign, Settings, Calendar, History } from 'lucide-react';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Plus, Package, Loader2, LayoutGrid, List, Check, MoreHorizontal, Truck, MapPin, Scale, DollarSign, Settings, Calendar, History, Undo2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { RT, NaturezaRT, ClassificacaoCarga, naturezaLabels, classificacaoLabels, isParaDespacho, isParaColeta } from '@/types/rt';
+import { RT, NaturezaRT, ClassificacaoCarga, naturezaLabels, classificacaoLabels, isParaDespacho, isParaColeta, isAereo } from '@/types/rt';
 import { Link } from 'react-router-dom';
 
 const Index = () => {
-  const { rts, coletores, locais, agentesAtivos, empresas, isLoading, addRT, updateStatus, deleteRT, addColetor, updateColetor, addEmpresa, addLocal, updateRT, findColetorByCPF } = useRTs();
+  const { rts, coletores, locais, agentesAtivos, empresas, isLoading, addRT, updateStatus, revertToColetada, addColetor, updateColetor, addEmpresa, addLocal, updateRT, findColetorByCPF } = useRTs();
   
   const [showForm, setShowForm] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [printDialogOpen, setPrintDialogOpen] = useState(false);
   const [rtToPrint, setRtToPrint] = useState<RT | null>(null);
+  
+  // Estados para dialogs de coleta e despacho
+  const [coletaDialogOpen, setColetaDialogOpen] = useState(false);
+  const [despachoDialogOpen, setDespachoDialogOpen] = useState(false);
+  const [selectedRT, setSelectedRT] = useState<RT | null>(null);
   
   const currentAgente = useSavedAgente(agentesAtivos);
 
@@ -45,7 +52,43 @@ const Index = () => {
     setPrintDialogOpen(true);
   };
 
-  const handleDespacho = async (id: string) => { await updateStatus({ id, status: 'despachada' }); };
+  const handleOpenColeta = (rt: RT) => {
+    setSelectedRT(rt);
+    setColetaDialogOpen(true);
+  };
+
+  const handleConfirmColeta = async (coletorId: string) => {
+    if (selectedRT) {
+      await updateStatus({ id: selectedRT.id, status: 'coletada', coletorId });
+      setSelectedRT(null);
+    }
+  };
+
+  const handleOpenDespacho = (rt: RT) => {
+    setSelectedRT(rt);
+    setDespachoDialogOpen(true);
+  };
+
+  const handleConfirmDespacho = async (data: { cia_aerea?: string; numero_voo?: string; observacao_despacho?: string }) => {
+    if (selectedRT) {
+      await updateStatus({ 
+        id: selectedRT.id, 
+        status: 'despachada',
+        cia_aerea: data.cia_aerea,
+        numero_voo: data.numero_voo,
+        observacao_despacho: data.observacao_despacho,
+      });
+      setSelectedRT(null);
+    }
+  };
+
+  const handleRevertToPendente = async (id: string) => {
+    await updateStatus({ id, status: 'pendente' });
+  };
+
+  const handleRevertToColetada = async (id: string) => {
+    await revertToColetada(id);
+  };
 
   const formatCurrency = (value: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
 
@@ -62,60 +105,96 @@ const Index = () => {
     return format(new Date(date), "dd/MM/yyyy HH:mm", { locale: ptBR });
   };
 
-  const RTCardItem = ({ rt, showColeta, completed }: { rt: RT; showColeta?: boolean; completed?: boolean }) => (
-    <div className={`p-3 rounded-lg border transition-shadow hover:shadow-md ${completed ? 'bg-muted/50 opacity-75' : 'bg-background'}`}>
-      <div className="flex items-start justify-between mb-2">
-        <div className="flex items-center gap-2 flex-wrap">
-          <span className="font-semibold text-sm">{rt.numero}</span>
-          {rt.numeros_anteriores && rt.numeros_anteriores.length > 0 && (
-            <Tooltip>
-              <TooltipTrigger>
-                <Badge variant="outline" className="text-xs gap-1">
-                  <History className="h-2.5 w-2.5" />
-                  {rt.numeros_anteriores.length}
-                </Badge>
-              </TooltipTrigger>
-              <TooltipContent>
-                <div className="text-xs">
-                  <p className="font-medium mb-1">Números anteriores:</p>
-                  {rt.numeros_anteriores.map((num, idx) => (
-                    <p key={idx}>{num}</p>
-                  ))}
-                </div>
-              </TooltipContent>
-            </Tooltip>
-          )}
-          <Badge variant="outline" className="text-xs">{naturezaLabels[rt.natureza]}</Badge>
-          <Badge variant={rt.classificacao === 'fragil' ? 'destructive' : 'secondary'} className="text-xs">{classificacaoLabels[rt.classificacao]}</Badge>
-        </div>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="h-6 w-6"><MoreHorizontal className="h-3.5 w-3.5" /></Button></DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-44">
-            {!completed && <DropdownMenuItem onClick={() => handleDespacho(rt.id)}><Truck className="h-4 w-4 mr-2" />Marcar Despachada</DropdownMenuItem>}
-            <DropdownMenuItem onClick={() => deleteRT(rt.id)} className="text-destructive"><Trash2 className="h-4 w-4 mr-2" />Excluir RT</DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </div>
-      <div className="space-y-1.5 text-xs text-muted-foreground">
-        <div className="flex items-center gap-1"><MapPin className="h-3 w-3" /><span>{rt.origem} → {rt.destino}</span></div>
-        <div className="flex items-center gap-2 flex-wrap">
-          <div className="flex items-center gap-1">
-            <Calendar className="h-3 w-3" />
-            <span>Entrada: {formatDateTime(rt.data_recebimento_base || rt.created_at)}</span>
+  const getPrevisaoLabel = (rt: RT) => {
+    return isParaColeta(rt.natureza) ? 'Prev. Coleta' : 'Prev. Despacho';
+  };
+
+  const RTCardItem = ({ rt, showColeta, completed }: { rt: RT; showColeta?: boolean; completed?: boolean }) => {
+    const canMarkColeta = isParaColeta(rt.natureza) && rt.status === 'pendente';
+    const canMarkDespacho = isParaDespacho(rt.natureza) && (rt.status === 'pendente' || rt.status === 'coletada');
+    const isCompleted = rt.status === 'despachada' || rt.status === 'coletada';
+    const wasColetada = rt.status === 'despachada' && rt.coletada_em;
+
+    return (
+      <div className={`p-3 rounded-lg border transition-shadow hover:shadow-md ${completed ? 'bg-muted/50 opacity-75' : 'bg-background'}`}>
+        <div className="flex items-start justify-between mb-2">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="font-semibold text-sm">{rt.numero}</span>
+            {rt.numeros_anteriores && rt.numeros_anteriores.length > 0 && (
+              <Tooltip>
+                <TooltipTrigger>
+                  <Badge variant="outline" className="text-xs gap-1">
+                    <History className="h-2.5 w-2.5" />
+                    {rt.numeros_anteriores.length}
+                  </Badge>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <div className="text-xs">
+                    <p className="font-medium mb-1">Números anteriores:</p>
+                    {rt.numeros_anteriores.map((num, idx) => (
+                      <p key={idx}>{num}</p>
+                    ))}
+                  </div>
+                </TooltipContent>
+              </Tooltip>
+            )}
+            <Badge variant="outline" className="text-xs">{naturezaLabels[rt.natureza]}</Badge>
+            <Badge variant={rt.classificacao === 'fragil' ? 'destructive' : 'secondary'} className="text-xs">{classificacaoLabels[rt.classificacao]}</Badge>
           </div>
-          {rt.data_prevista_despacho && (
-            <div className="flex items-center gap-1">
-              <span>Saída: {formatDateTime(rt.data_prevista_despacho)}</span>
-            </div>
-          )}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="h-6 w-6"><MoreHorizontal className="h-3.5 w-3.5" /></Button></DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48">
+              {canMarkColeta && (
+                <DropdownMenuItem onClick={() => handleOpenColeta(rt)}>
+                  <Package className="h-4 w-4 mr-2 text-info" />
+                  Marcar como Coletada
+                </DropdownMenuItem>
+              )}
+              {canMarkDespacho && (
+                <DropdownMenuItem onClick={() => handleOpenDespacho(rt)}>
+                  <Truck className="h-4 w-4 mr-2 text-success" />
+                  Marcar como Despachada
+                </DropdownMenuItem>
+              )}
+              {isCompleted && (
+                <>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => handleRevertToPendente(rt.id)}>
+                    <Undo2 className="h-4 w-4 mr-2" />
+                    Retornar para Pendente
+                  </DropdownMenuItem>
+                  {wasColetada && (
+                    <DropdownMenuItem onClick={() => handleRevertToColetada(rt.id)}>
+                      <Undo2 className="h-4 w-4 mr-2" />
+                      Retornar para Coletada
+                    </DropdownMenuItem>
+                  )}
+                </>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-1"><Scale className="h-3 w-3" /><span>{Number(rt.peso).toFixed(2)} kg</span></div>
-          <div className="flex items-center gap-1"><DollarSign className="h-3 w-3" /><span>{formatCurrency(Number(rt.valor))}</span></div>
+        <div className="space-y-1.5 text-xs text-muted-foreground">
+          <div className="flex items-center gap-1"><MapPin className="h-3 w-3" /><span>{rt.origem} → {rt.destino}</span></div>
+          <div className="flex items-center gap-2 flex-wrap">
+            <div className="flex items-center gap-1">
+              <Calendar className="h-3 w-3" />
+              <span>Entrada: {formatDateTime(rt.data_recebimento_base || rt.created_at)}</span>
+            </div>
+            {rt.data_prevista_despacho && (
+              <div className="flex items-center gap-1">
+                <span>{getPrevisaoLabel(rt)}: {formatDateTime(rt.data_prevista_despacho)}</span>
+              </div>
+            )}
+          </div>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-1"><Scale className="h-3 w-3" /><span>{Number(rt.peso).toFixed(2)} kg</span></div>
+            <div className="flex items-center gap-1"><DollarSign className="h-3 w-3" /><span>{formatCurrency(Number(rt.valor))}</span></div>
+          </div>
         </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
@@ -169,12 +248,31 @@ const Index = () => {
           </TabsContent>
 
           <TabsContent value="table">
-            <RTTable rts={filteredRTs} coletores={coletores} empresas={empresas} onUpdateStatus={updateStatus} onDelete={deleteRT} onAddColetor={addColetor} onUpdateColetor={updateColetor} onAddEmpresa={addEmpresa} findColetorByCPF={findColetorByCPF} onUpdateRT={updateRT} />
+            <RTTable rts={filteredRTs} coletores={coletores} empresas={empresas} onUpdateStatus={updateStatus} onRevertToColetada={revertToColetada} onAddColetor={addColetor} onUpdateColetor={updateColetor} onAddEmpresa={addEmpresa} findColetorByCPF={findColetorByCPF} onUpdateRT={updateRT} />
           </TabsContent>
         </Tabs>
       </div>
 
       <RTImpressao open={printDialogOpen} onOpenChange={setPrintDialogOpen} rt={rtToPrint} agente={currentAgente} />
+      
+      <ColetaDialog
+        open={coletaDialogOpen}
+        onOpenChange={setColetaDialogOpen}
+        coletores={coletores}
+        empresas={empresas}
+        onConfirm={handleConfirmColeta}
+        onAddColetor={addColetor}
+        onUpdateColetor={updateColetor}
+        onAddEmpresa={addEmpresa}
+        findColetorByCPF={findColetorByCPF}
+      />
+      
+      <DespachoDialog
+        open={despachoDialogOpen}
+        onOpenChange={setDespachoDialogOpen}
+        onConfirm={handleConfirmDespacho}
+        isAereo={selectedRT ? isAereo(selectedRT.natureza) : false}
+      />
     </div>
   );
 };
