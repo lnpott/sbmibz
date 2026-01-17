@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { RT, StatusRT, naturezaLabels, classificacaoLabels, Coletor, NaturezaRT, ClassificacaoCarga, Empresa, isParaDespacho } from '@/types/rt';
+import { RT, StatusRT, naturezaLabels, classificacaoLabels, Coletor, NaturezaRT, ClassificacaoCarga, Empresa, isParaDespacho, isParaColeta, isAereo } from '@/types/rt';
 import { StatusBadge } from './StatusBadge';
 import { ColetaDialog } from './ColetaDialog';
+import { DespachoDialog } from './DespachoDialog';
 import { RTEditDialog } from './RTEditDialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -17,6 +18,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import {
@@ -24,7 +26,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { MoreHorizontal, Package, Truck, Trash2, MapPin, Calendar, Scale, DollarSign, Plane, User, Edit3, History } from 'lucide-react';
+import { MoreHorizontal, Package, Truck, MapPin, Calendar, Scale, DollarSign, Plane, User, Edit3, History, Undo2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -32,8 +34,8 @@ interface RTTableProps {
   rts: RT[];
   coletores: Coletor[];
   empresas: Empresa[];
-  onUpdateStatus: (params: { id: string; status: StatusRT; coletorId?: string }) => Promise<void>;
-  onDelete: (id: string) => Promise<void>;
+  onUpdateStatus: (params: { id: string; status: StatusRT; coletorId?: string; cia_aerea?: string; numero_voo?: string; observacao_despacho?: string }) => Promise<void>;
+  onRevertToColetada: (id: string) => Promise<void>;
   onAddColetor: (coletor: { nome: string; cpf: string; telefone?: string; email?: string; empresa_id?: string }) => Promise<Coletor>;
   onUpdateColetor: (params: { id: string; data: { nome?: string; telefone?: string; email?: string; empresa_id?: string } }) => Promise<void>;
   onAddEmpresa: (empresa: { nome: string }) => Promise<Empresa>;
@@ -41,8 +43,9 @@ interface RTTableProps {
   onUpdateRT: (params: { id: string; data: { numero: string; numeros_anteriores?: string[]; natureza: NaturezaRT; descricao?: string; classificacao: ClassificacaoCarga; origem: string; destino: string; programacao?: string; peso: number; valor: number }; motivo: string; dadosAnteriores: RT }) => Promise<void>;
 }
 
-export const RTTable = ({ rts, coletores, empresas, onUpdateStatus, onDelete, onAddColetor, onUpdateColetor, onAddEmpresa, findColetorByCPF, onUpdateRT }: RTTableProps) => {
+export const RTTable = ({ rts, coletores, empresas, onUpdateStatus, onRevertToColetada, onAddColetor, onUpdateColetor, onAddEmpresa, findColetorByCPF, onUpdateRT }: RTTableProps) => {
   const [coletaDialogOpen, setColetaDialogOpen] = useState(false);
+  const [despachoDialogOpen, setDespachoDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [selectedRTId, setSelectedRTId] = useState<string | null>(null);
   const [selectedRT, setSelectedRT] = useState<RT | null>(null);
@@ -59,8 +62,9 @@ export const RTTable = ({ rts, coletores, empresas, onUpdateStatus, onDelete, on
     return format(new Date(date), "dd/MM/yyyy", { locale: ptBR });
   };
 
-  const handleColeta = (id: string) => {
-    setSelectedRTId(id);
+  const handleColeta = (rt: RT) => {
+    setSelectedRT(rt);
+    setSelectedRTId(rt.id);
     setColetaDialogOpen(true);
   };
 
@@ -68,15 +72,36 @@ export const RTTable = ({ rts, coletores, empresas, onUpdateStatus, onDelete, on
     if (selectedRTId) {
       await onUpdateStatus({ id: selectedRTId, status: 'coletada', coletorId });
       setSelectedRTId(null);
+      setSelectedRT(null);
     }
   };
 
-  const handleDespacho = async (id: string) => {
-    await onUpdateStatus({ id, status: 'despachada' });
+  const handleDespacho = (rt: RT) => {
+    setSelectedRT(rt);
+    setSelectedRTId(rt.id);
+    setDespachoDialogOpen(true);
   };
 
-  const handleDelete = async (id: string) => {
-    await onDelete(id);
+  const handleConfirmDespacho = async (data: { cia_aerea?: string; numero_voo?: string; observacao_despacho?: string }) => {
+    if (selectedRTId) {
+      await onUpdateStatus({ 
+        id: selectedRTId, 
+        status: 'despachada',
+        cia_aerea: data.cia_aerea,
+        numero_voo: data.numero_voo,
+        observacao_despacho: data.observacao_despacho,
+      });
+      setSelectedRTId(null);
+      setSelectedRT(null);
+    }
+  };
+
+  const handleRevertToPendente = async (id: string) => {
+    await onUpdateStatus({ id, status: 'pendente' });
+  };
+
+  const handleRevertToColetada = async (id: string) => {
+    await onRevertToColetada(id);
   };
 
   const handleEdit = (rt: RT) => {
@@ -139,132 +164,147 @@ export const RTTable = ({ rts, coletores, empresas, onUpdateStatus, onDelete, on
             </TableRow>
           </TableHeader>
           <TableBody>
-            {rts.map((rt) => (
-              <TableRow key={rt.id} className="hover:bg-muted/30 transition-colors">
-                <TableCell className="font-medium">
-                  <div className="flex items-center gap-1.5">
-                    {rt.numero}
-                    {rt.numeros_anteriores && rt.numeros_anteriores.length > 0 && (
+            {rts.map((rt) => {
+              const canMarkColeta = isParaColeta(rt.natureza) && rt.status === 'pendente';
+              const canMarkDespacho = isParaDespacho(rt.natureza) && (rt.status === 'pendente' || rt.status === 'coletada');
+              const isCompleted = rt.status === 'despachada' || rt.status === 'coletada';
+              const wasColetada = rt.status === 'despachada' && rt.coletada_em;
+
+              return (
+                <TableRow key={rt.id} className="hover:bg-muted/30 transition-colors">
+                  <TableCell className="font-medium">
+                    <div className="flex items-center gap-1.5">
+                      {rt.numero}
+                      {rt.numeros_anteriores && rt.numeros_anteriores.length > 0 && (
+                        <Tooltip>
+                          <TooltipTrigger>
+                            <Badge variant="outline" className="text-xs gap-0.5 px-1">
+                              <History className="h-2.5 w-2.5" />
+                              {rt.numeros_anteriores.length}
+                            </Badge>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <div className="text-xs">
+                              <p className="font-medium mb-1">Números anteriores:</p>
+                              {rt.numeros_anteriores.map((num, idx) => (
+                                <p key={idx}>{num}</p>
+                              ))}
+                            </div>
+                          </TooltipContent>
+                        </Tooltip>
+                      )}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="outline" className="flex items-center gap-1 w-fit">
+                      <Plane className="h-3 w-3" />
+                      {naturezaLabels[rt.natureza]}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant={rt.classificacao === 'fragil' ? 'destructive' : 'secondary'}>
+                      {classificacaoLabels[rt.classificacao]}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-1.5 text-sm">
+                      <MapPin className="h-3.5 w-3.5 text-muted-foreground" />
+                      <span>{rt.origem}</span>
+                      <span className="text-muted-foreground">→</span>
+                      <span>{rt.destino}</span>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    {isParaDespacho(rt.natureza) ? (
+                      <div className="flex items-center gap-1.5 text-sm">
+                        <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
+                        {formatDate(rt.programacao)}
+                      </div>
+                    ) : (
+                      <span className="text-muted-foreground text-sm">-</span>
+                    )}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex items-center justify-end gap-1 text-sm">
+                      <Scale className="h-3.5 w-3.5 text-muted-foreground" />
+                      {Number(rt.peso).toFixed(2)} kg
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex items-center justify-end gap-1 text-sm">
+                      <DollarSign className="h-3.5 w-3.5 text-muted-foreground" />
+                      {formatCurrency(Number(rt.valor))}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <StatusBadge status={rt.status} />
+                  </TableCell>
+                  <TableCell>
+                    {rt.coletor ? (
                       <Tooltip>
                         <TooltipTrigger>
-                          <Badge variant="outline" className="text-xs gap-0.5 px-1">
-                            <History className="h-2.5 w-2.5" />
-                            {rt.numeros_anteriores.length}
-                          </Badge>
+                          <div className="flex items-center gap-1.5 text-sm">
+                            <User className="h-3.5 w-3.5 text-muted-foreground" />
+                            {rt.coletor.nome.split(' ')[0]}
+                          </div>
                         </TooltipTrigger>
                         <TooltipContent>
                           <div className="text-xs">
-                            <p className="font-medium mb-1">Números anteriores:</p>
-                            {rt.numeros_anteriores.map((num, idx) => (
-                              <p key={idx}>{num}</p>
-                            ))}
+                            <p className="font-medium">{rt.coletor.nome}</p>
+                            <p>CPF: {rt.coletor.cpf}</p>
+                            {rt.coletor.telefone && <p>Tel: {rt.coletor.telefone}</p>}
                           </div>
                         </TooltipContent>
                       </Tooltip>
+                    ) : (
+                      <span className="text-muted-foreground text-sm">-</span>
                     )}
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <Badge variant="outline" className="flex items-center gap-1 w-fit">
-                    <Plane className="h-3 w-3" />
-                    {naturezaLabels[rt.natureza]}
-                  </Badge>
-                </TableCell>
-                <TableCell>
-                  <Badge variant={rt.classificacao === 'fragil' ? 'destructive' : 'secondary'}>
-                    {classificacaoLabels[rt.classificacao]}
-                  </Badge>
-                </TableCell>
-                <TableCell>
-                  <div className="flex items-center gap-1.5 text-sm">
-                    <MapPin className="h-3.5 w-3.5 text-muted-foreground" />
-                    <span>{rt.origem}</span>
-                    <span className="text-muted-foreground">→</span>
-                    <span>{rt.destino}</span>
-                  </div>
-                </TableCell>
-                <TableCell>
-                  {isParaDespacho(rt.natureza) ? (
-                    <div className="flex items-center gap-1.5 text-sm">
-                      <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
-                      {formatDate(rt.programacao)}
-                    </div>
-                  ) : (
-                    <span className="text-muted-foreground text-sm">-</span>
-                  )}
-                </TableCell>
-                <TableCell className="text-right">
-                  <div className="flex items-center justify-end gap-1 text-sm">
-                    <Scale className="h-3.5 w-3.5 text-muted-foreground" />
-                    {Number(rt.peso).toFixed(2)} kg
-                  </div>
-                </TableCell>
-                <TableCell className="text-right">
-                  <div className="flex items-center justify-end gap-1 text-sm">
-                    <DollarSign className="h-3.5 w-3.5 text-muted-foreground" />
-                    {formatCurrency(Number(rt.valor))}
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <StatusBadge status={rt.status} />
-                </TableCell>
-                <TableCell>
-                  {rt.coletor ? (
-                    <Tooltip>
-                      <TooltipTrigger>
-                        <div className="flex items-center gap-1.5 text-sm">
-                          <User className="h-3.5 w-3.5 text-muted-foreground" />
-                          {rt.coletor.nome.split(' ')[0]}
-                        </div>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <div className="text-xs">
-                          <p className="font-medium">{rt.coletor.nome}</p>
-                          <p>CPF: {rt.coletor.cpf}</p>
-                          {rt.coletor.telefone && <p>Tel: {rt.coletor.telefone}</p>}
-                        </div>
-                      </TooltipContent>
-                    </Tooltip>
-                  ) : (
-                    <span className="text-muted-foreground text-sm">-</span>
-                  )}
-                </TableCell>
-                <TableCell className="text-right">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-8 w-8">
-                        <MoreHorizontal className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-48">
-                      <DropdownMenuItem onClick={() => handleEdit(rt)}>
-                        <Edit3 className="h-4 w-4 mr-2 text-primary" />
-                        Editar RT
-                      </DropdownMenuItem>
-                      {rt.status === 'pendente' && (
-                        <DropdownMenuItem onClick={() => handleColeta(rt.id)}>
-                          <Package className="h-4 w-4 mr-2 text-info" />
-                          Registrar Coleta
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-52">
+                        <DropdownMenuItem onClick={() => handleEdit(rt)}>
+                          <Edit3 className="h-4 w-4 mr-2 text-primary" />
+                          Editar RT
                         </DropdownMenuItem>
-                      )}
-                      {(rt.status === 'pendente' || rt.status === 'coletada') && (
-                        <DropdownMenuItem onClick={() => handleDespacho(rt.id)}>
-                          <Truck className="h-4 w-4 mr-2 text-success" />
-                          Marcar como Despachada
-                        </DropdownMenuItem>
-                      )}
-                      <DropdownMenuItem 
-                        onClick={() => handleDelete(rt.id)}
-                        className="text-destructive focus:text-destructive"
-                      >
-                        <Trash2 className="h-4 w-4 mr-2" />
-                        Excluir RT
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </TableCell>
-              </TableRow>
-            ))}
+                        {canMarkColeta && (
+                          <DropdownMenuItem onClick={() => handleColeta(rt)}>
+                            <Package className="h-4 w-4 mr-2 text-info" />
+                            Marcar como Coletada
+                          </DropdownMenuItem>
+                        )}
+                        {canMarkDespacho && (
+                          <DropdownMenuItem onClick={() => handleDespacho(rt)}>
+                            <Truck className="h-4 w-4 mr-2 text-success" />
+                            Marcar como Despachada
+                          </DropdownMenuItem>
+                        )}
+                        {isCompleted && (
+                          <>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem onClick={() => handleRevertToPendente(rt.id)}>
+                              <Undo2 className="h-4 w-4 mr-2" />
+                              Retornar para Pendente
+                            </DropdownMenuItem>
+                            {wasColetada && (
+                              <DropdownMenuItem onClick={() => handleRevertToColetada(rt.id)}>
+                                <Undo2 className="h-4 w-4 mr-2" />
+                                Retornar para Coletada
+                              </DropdownMenuItem>
+                            )}
+                          </>
+                        )}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </TableCell>
+                </TableRow>
+              );
+            })}
           </TableBody>
         </Table>
       </div>
@@ -279,6 +319,13 @@ export const RTTable = ({ rts, coletores, empresas, onUpdateStatus, onDelete, on
         onUpdateColetor={onUpdateColetor}
         onAddEmpresa={onAddEmpresa}
         findColetorByCPF={findColetorByCPF}
+      />
+
+      <DespachoDialog
+        open={despachoDialogOpen}
+        onOpenChange={setDespachoDialogOpen}
+        onConfirm={handleConfirmDespacho}
+        isAereo={selectedRT ? isAereo(selectedRT.natureza) : false}
       />
 
       <RTEditDialog

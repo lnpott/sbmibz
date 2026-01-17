@@ -7,7 +7,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog';
-import { RT, naturezaLabels, classificacaoLabels, Agente } from '@/types/rt';
+import { RT, naturezaLabels, classificacaoLabels, Agente, isParaColeta, isAereo } from '@/types/rt';
 import { Printer, Package, MapPin, Calendar, Scale, DollarSign, User, Building2, FileText, History } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -129,7 +129,7 @@ export const RTImpressao = ({ open, onOpenChange, rt, agente }: RTImpressaoProps
                 <div className="value">{formatDateTime(rt.data_recebimento_base || rt.created_at)}</div>
               </div>
               <div className="field">
-                <div className="label">Projeção de Saída</div>
+                <div className="label">{isParaColeta(rt.natureza) ? 'Previsão de Coleta' : 'Previsão de Despacho'}</div>
                 <div className="value">{formatDateTime(rt.data_prevista_despacho)}</div>
               </div>
               <div className="field">
@@ -200,7 +200,7 @@ export const RTImpressao = ({ open, onOpenChange, rt, agente }: RTImpressaoProps
               )}
               {rt.data_prevista_despacho && (
                 <div className="field">
-                  <div className="label">Previsão de Despacho</div>
+                  <div className="label">{isParaColeta(rt.natureza) ? 'Previsão de Coleta' : 'Previsão de Despacho'}</div>
                   <div className="value">{formatDateTime(rt.data_prevista_despacho)}</div>
                 </div>
               )}
@@ -212,6 +212,32 @@ export const RTImpressao = ({ open, onOpenChange, rt, agente }: RTImpressaoProps
               )}
             </div>
           </div>
+
+          {(rt.cia_aerea || rt.numero_voo || rt.observacao_despacho) && (
+            <div className="section">
+              <div className="section-title">DADOS DO DESPACHO AÉREO</div>
+              <div className="grid">
+                {rt.cia_aerea && (
+                  <div className="field">
+                    <div className="label">Companhia Aérea</div>
+                    <div className="value">{rt.cia_aerea}</div>
+                  </div>
+                )}
+                {rt.numero_voo && (
+                  <div className="field">
+                    <div className="label">Número do Voo</div>
+                    <div className="value">{rt.numero_voo}</div>
+                  </div>
+                )}
+              </div>
+              {rt.observacao_despacho && (
+                <div className="field" style={{ marginTop: '8px' }}>
+                  <div className="label">Observação</div>
+                  <div className="value">{rt.observacao_despacho}</div>
+                </div>
+              )}
+            </div>
+          )}
 
           {(rt.entregador || rt.coletor) && (
             <div className="section">

@@ -63,6 +63,9 @@ export interface RT {
   created_at: string;
   coletada_em?: string;
   despachada_em?: string;
+  cia_aerea?: string;
+  numero_voo?: string;
+  observacao_despacho?: string;
 }
 
 export const naturezaLabels: Record<NaturezaRT, string> = {

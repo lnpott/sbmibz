@@ -279,7 +279,9 @@ export const RTForm = ({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="data_despacho">Projeção de Saída</Label>
+              <Label htmlFor="data_despacho">
+                {formData.finalidade === 'coleta' ? 'Previsão de Coleta' : 'Previsão de Despacho'}
+              </Label>
               <Input id="data_despacho" type="datetime-local" value={formData.data_prevista_despacho}
                 onChange={(e) => setFormData({ ...formData, data_prevista_despacho: e.target.value })} />
             </div>
