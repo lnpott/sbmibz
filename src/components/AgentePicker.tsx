@@ -9,7 +9,7 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { Agente } from '@/types/rt';
-import { User, Shield, Check } from 'lucide-react';
+import { User, Shield, Check, Info } from 'lucide-react';
 
 interface AgentePickerProps {
   agentes: Agente[];
@@ -56,6 +56,10 @@ export const AgentePicker = ({ agentes, onSelect }: AgentePickerProps) => {
           <DialogDescription>
             Selecione seu nome para iniciar a operação do sistema.
           </DialogDescription>
+          <div className="flex items-center gap-2 text-xs text-muted-foreground bg-muted/50 rounded p-2">
+            <Info className="h-3 w-3" />
+            <span>v1.00beta | Commit: 166c13c</span>
+          </div>
         </DialogHeader>
 
         <div className="grid gap-2 py-4">
