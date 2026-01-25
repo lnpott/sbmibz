@@ -3,11 +3,13 @@ export type TipoRecebimento = 'aereo' | 'terrestre';
 export type FinalidadeRT = 'despacho' | 'coleta' | 'transbordo';
 export type StatusRT = 'pendente' | 'coletada' | 'despachada' | 'embarque_cancelado' | 'coleta_cancelada';
 export type ClassificacaoCarga = 'comum' | 'fragil';
+export type CategoriaLocal = 'offshore' | 'onshore';
 
 export interface Local {
   id: string;
   codigo: string;
   descricao?: string;
+  categoria: CategoriaLocal;
   created_at: string;
 }
 
@@ -97,6 +99,11 @@ export const finalidadeLabels: Record<FinalidadeRT, string> = {
 export const classificacaoLabels: Record<ClassificacaoCarga, string> = {
   'comum': 'Comum',
   'fragil': 'Frágil',
+};
+
+export const categoriaLocalLabels: Record<CategoriaLocal, string> = {
+  'offshore': 'Off-Shore',
+  'onshore': 'On-Shore',
 };
 
 export const statusLabels: Record<StatusRT, string> = {

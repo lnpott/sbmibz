@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { RT, StatusRT, NaturezaRT, ClassificacaoCarga, Coletor, Local, Agente, Empresa } from '@/types/rt';
+import { RT, NaturezaRT, ClassificacaoCarga, Local, Agente, Coletor, Empresa, CategoriaLocal, StatusRT } from '@/types/rt';
 import { toast } from 'sonner';
 
 export const useRTs = () => {
@@ -313,10 +313,17 @@ export const useRTs = () => {
   });
 
   const addLocalMutation = useMutation({
-    mutationFn: async (local: { codigo: string; descricao?: string }) => {
+    mutationFn: async (local: { codigo: string; descricao?: string; categoria?: CategoriaLocal }) => {
+      // Se não especificar categoria, assume onshore como padrão
+      const categoriaPadrao: CategoriaLocal = local.categoria || 'onshore';
+      
       const { data, error } = await supabase
         .from('locais')
-        .insert(local)
+        .insert({
+          codigo: local.codigo,
+          descricao: local.descricao || null,
+          categoria: categoriaPadrao
+        })
         .select()
         .single();
       
