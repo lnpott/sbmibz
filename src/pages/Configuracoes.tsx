@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import { useRTs } from '@/hooks/useRTs';
 import { useAuditLogs } from '@/hooks/useAuditLogs';
 import { useConfiguracoes } from '@/hooks/useConfiguracoes';
+import { useSavedAgente } from '@/components/AgentePicker';
 import { EditDialog } from '@/components/EditDialog';
 import { AddAgenteDialog } from '@/components/AddAgenteDialog';
 import { Button } from '@/components/ui/button';
@@ -10,7 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { ArrowLeft, Search, Users, Building2, MapPin, UserCheck, History, Plus, Pencil } from 'lucide-react';
+import { ArrowLeft, Search, Users, Building2, MapPin, UserCheck, History, Plus, Pencil, User, Settings, LogOut } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { acaoLabels, tabelaLabels } from '@/types/audit';
@@ -21,6 +22,7 @@ const Configuracoes = () => {
   const { rts, coletores, locais, agentes, empresas } = useRTs();
   const { logs, addLog } = useAuditLogs();
   const { updateAgente, addAgente, updateEmpresa, updateLocal, updatePessoa } = useConfiguracoes(addLog);
+  const currentAgente = useSavedAgente(agentes);
 
   const [searchQuery, setSearchQuery] = useState('');
   const [editDialogOpen, setEditDialogOpen] = useState(false);
@@ -29,6 +31,11 @@ const Configuracoes = () => {
     tipo: 'agente' | 'empresa' | 'local' | 'pessoa';
     item: Agente | Empresa | Local | Coletor;
   } | null>(null);
+
+  const handleLogout = () => {
+    localStorage.removeItem('agente_selecionado');
+    window.location.reload();
+  };
 
   // Busca universal
   const searchResults = useMemo(() => {
@@ -234,14 +241,88 @@ const Configuracoes = () => {
         </Card>
 
         {/* Tabs de gerenciamento */}
-        <Tabs defaultValue="agentes" className="space-y-4">
+        <Tabs defaultValue="perfil" className="space-y-4">
           <TabsList>
+            <TabsTrigger value="perfil" className="gap-2"><User className="h-4 w-4" />Perfil</TabsTrigger>
             <TabsTrigger value="agentes" className="gap-2"><UserCheck className="h-4 w-4" />Agentes</TabsTrigger>
             <TabsTrigger value="empresas" className="gap-2"><Building2 className="h-4 w-4" />Empresas</TabsTrigger>
             <TabsTrigger value="locais" className="gap-2"><MapPin className="h-4 w-4" />Locais</TabsTrigger>
             <TabsTrigger value="pessoas" className="gap-2"><Users className="h-4 w-4" />Pessoas</TabsTrigger>
             <TabsTrigger value="historico" className="gap-2"><History className="h-4 w-4" />Histórico</TabsTrigger>
           </TabsList>
+
+          <TabsContent value="perfil">
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <User className="h-4 w-4" />
+                  Perfil do Usuário
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {currentAgente && (
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-4 p-4 rounded-lg border bg-muted/30">
+                      <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
+                        <User className="h-6 w-6 text-primary" />
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="font-semibold text-lg">{currentAgente.nome}</h3>
+                        <p className="text-sm text-muted-foreground">Agente do Sistema</p>
+                        <Badge variant={currentAgente.ativo ? 'default' : 'secondary'} className="mt-1">
+                          {currentAgente.ativo ? 'Ativo' : 'Inativo'}
+                        </Badge>
+                      </div>
+                    </div>
+
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <div className="p-3 rounded-lg border">
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
+                          <Settings className="h-4 w-4" />
+                          ID do Agente
+                        </div>
+                        <p className="font-mono text-sm">{currentAgente.id}</p>
+                      </div>
+                      
+                      <div className="p-3 rounded-lg border">
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
+                          <UserCheck className="h-4 w-4" />
+                          Status
+                        </div>
+                        <Badge variant={currentAgente.ativo ? 'default' : 'secondary'}>
+                          {currentAgente.ativo ? 'Ativo no Sistema' : 'Inativo'}
+                        </Badge>
+                      </div>
+                    </div>
+
+                    <div className="pt-4 border-t">
+                      <Button 
+                        variant="destructive" 
+                        onClick={handleLogout}
+                        className="w-full gap-2"
+                      >
+                        <LogOut className="h-4 w-4" />
+                        Sair do Sistema
+                      </Button>
+                      <p className="text-xs text-muted-foreground mt-2 text-center">
+                        Ao sair, você precisará selecionar seu nome novamente ao acessar o sistema.
+                      </p>
+                    </div>
+                  </div>
+                )}
+                
+                {!currentAgente && (
+                  <div className="text-center py-8">
+                    <User className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                    <p className="text-muted-foreground">Nenhum agente selecionado</p>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Recarregue a página para selecionar um agente.
+                    </p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
 
           <TabsContent value="agentes">
             <Card>
