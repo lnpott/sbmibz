@@ -132,7 +132,7 @@ export const isTerrestre = (natureza: NaturezaRT): boolean => {
 };
 
 export const isParaDespacho = (natureza: NaturezaRT): boolean => {
-  return natureza === 'despacho' || natureza.endsWith('_despacho');
+  return natureza === 'despacho' || natureza.endsWith('_despacho') || natureza.endsWith('_transbordo');
 };
 
 export const isParaColeta = (natureza: NaturezaRT): boolean => {

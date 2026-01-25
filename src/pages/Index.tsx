@@ -198,7 +198,8 @@ const Index = () => {
   };
 
   const getPrevisaoLabel = (rt: RT) => {
-    return isParaColeta(rt.natureza) ? 'Prev. Coleta' : 'Prev. Despacho';
+    const finalidade = rt.natureza.split('_').pop();
+    return finalidade === 'coleta' ? 'Prev. Coleta' : 'Prev. Despacho';
   };
 
   const RTCardItem = ({ rt, showColeta, completed }: { rt: RT; showColeta?: boolean; completed?: boolean }) => {

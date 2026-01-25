@@ -156,7 +156,7 @@ export const RTForm = ({
   const showEntregador = formData.tipoRecebimento === 'terrestre';
   const finalidadeOptions = formData.tipoRecebimento === 'terrestre' 
     ? (['despacho', 'coleta'] as FinalidadeRT[])
-    : (['despacho', 'coleta', 'transbordo'] as FinalidadeRT[]);
+    : (['coleta', 'transbordo'] as FinalidadeRT[]);
 
   return (
     <>
