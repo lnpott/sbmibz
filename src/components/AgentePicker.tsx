@@ -10,6 +10,7 @@ import {
 } from '@/components/ui/dialog';
 import { Agente } from '@/types/rt';
 import { User, Shield, Check, Info } from 'lucide-react';
+import { getVersionInfo } from '@/lib/version';
 
 interface AgentePickerProps {
   agentes: Agente[];
@@ -21,6 +22,7 @@ const STORAGE_KEY = 'agente_selecionado';
 export const AgentePicker = ({ agentes, onSelect }: AgentePickerProps) => {
   const [open, setOpen] = useState(false);
   const [selected, setSelected] = useState<Agente | null>(null);
+  const versionInfo = getVersionInfo();
 
   // Load saved agente on mount or show dialog
   useEffect(() => {
@@ -58,7 +60,7 @@ export const AgentePicker = ({ agentes, onSelect }: AgentePickerProps) => {
           </DialogDescription>
           <div className="flex items-center gap-2 text-xs text-muted-foreground bg-muted/50 rounded p-2">
             <Info className="h-3 w-3" />
-            <span>v1.00beta | Commit: 166c13c</span>
+            <span>{versionInfo.formatted} | {versionInfo.counter} modificações</span>
           </div>
         </DialogHeader>
 

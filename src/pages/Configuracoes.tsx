@@ -3,6 +3,7 @@ import { useRTs } from '@/hooks/useRTs';
 import { useAuditLogs } from '@/hooks/useAuditLogs';
 import { useConfiguracoes } from '@/hooks/useConfiguracoes';
 import { useSavedAgente } from '@/components/AgentePicker';
+import { useVersionTracker } from '@/hooks/useVersionTracker';
 import { EditDialog } from '@/components/EditDialog';
 import { AddAgenteDialog } from '@/components/AddAgenteDialog';
 import { Button } from '@/components/ui/button';
@@ -11,7 +12,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { ArrowLeft, Search, Users, Building2, MapPin, UserCheck, History, Plus, Pencil, User, Settings, LogOut } from 'lucide-react';
+import { ArrowLeft, Search, Users, Building2, MapPin, UserCheck, History, Plus, Pencil, User, Settings, LogOut, Zap } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { acaoLabels, tabelaLabels } from '@/types/audit';
@@ -23,6 +24,7 @@ const Configuracoes = () => {
   const { logs, addLog } = useAuditLogs();
   const { updateAgente, addAgente, updateEmpresa, updateLocal, updatePessoa } = useConfiguracoes(addLog);
   const currentAgente = useSavedAgente(agentes);
+  const { manualIncrement, versionInfo } = useVersionTracker();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [editDialogOpen, setEditDialogOpen] = useState(false);
@@ -34,6 +36,12 @@ const Configuracoes = () => {
 
   const handleLogout = () => {
     localStorage.removeItem('agente_selecionado');
+    window.location.reload();
+  };
+
+  const handleIncrementVersion = () => {
+    const newVersion = manualIncrement();
+    // Força atualização da tela para mostrar nova versão
     window.location.reload();
   };
 
@@ -292,6 +300,35 @@ const Configuracoes = () => {
                         <Badge variant={currentAgente.ativo ? 'default' : 'secondary'}>
                           {currentAgente.ativo ? 'Ativo no Sistema' : 'Inativo'}
                         </Badge>
+                      </div>
+                    </div>
+
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <div className="p-3 rounded-lg border">
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
+                          <Zap className="h-4 w-4" />
+                          Versão do Sistema
+                        </div>
+                        <div className="space-y-1">
+                          <p className="font-mono text-sm">{versionInfo.formatted}</p>
+                          <p className="text-xs text-muted-foreground">{versionInfo.description}</p>
+                        </div>
+                      </div>
+                      
+                      <div className="p-3 rounded-lg border">
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
+                          <Settings className="h-4 w-4" />
+                          Controle de Versão
+                        </div>
+                        <Button 
+                          size="sm" 
+                          onClick={handleIncrementVersion}
+                          className="w-full gap-2"
+                          variant="outline"
+                        >
+                          <Zap className="h-4 w-4" />
+                          Incrementar Versão
+                        </Button>
                       </div>
                     </div>
 
