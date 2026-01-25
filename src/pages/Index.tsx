@@ -8,12 +8,13 @@ import { RTImpressao } from '@/components/RTImpressao';
 import { AgentePicker, useSavedAgente } from '@/components/AgentePicker';
 import { ColetaDialog } from '@/components/ColetaDialog';
 import { DespachoDialog } from '@/components/DespachoDialog';
+import { CancelamentoEmbarqueDialog } from '@/components/CancelamentoEmbarqueDialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Plus, Package, Loader2, LayoutGrid, List, Check, MoreHorizontal, Truck, MapPin, Scale, DollarSign, Settings, Calendar, History, Undo2 } from 'lucide-react';
+import { Plus, Package, Loader2, LayoutGrid, List, Check, MoreHorizontal, Truck, MapPin, Scale, DollarSign, Settings, Calendar, History, Undo2, AlertTriangle } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
@@ -31,13 +32,14 @@ const Index = () => {
   // Estados para dialogs de coleta e despacho
   const [coletaDialogOpen, setColetaDialogOpen] = useState(false);
   const [despachoDialogOpen, setDespachoDialogOpen] = useState(false);
+  const [cancelamentoDialogOpen, setCancelamentoDialogOpen] = useState(false);
   const [selectedRT, setSelectedRT] = useState<RT | null>(null);
   
   const currentAgente = useSavedAgente(agentesAtivos);
 
   const pendingDespacho = rts.filter(rt => isParaDespacho(rt.natureza) && rt.status !== 'despachada');
   const pendingColeta = rts.filter(rt => isParaColeta(rt.natureza) && rt.status === 'pendente');
-  const concluidas = rts.filter(rt => rt.status === 'despachada' || rt.status === 'coletada');
+  const concluidas = rts.filter(rt => rt.status === 'despachada' || rt.status === 'coletada' || rt.status === 'embarque_cancelado');
 
   const filteredRTs = rts.filter(rt => {
     if (!searchQuery.trim()) return true;
@@ -69,6 +71,11 @@ const Index = () => {
     setDespachoDialogOpen(true);
   };
 
+  const handleOpenCancelamento = (rt: RT) => {
+    setSelectedRT(rt);
+    setCancelamentoDialogOpen(true);
+  };
+
   const handleConfirmDespacho = async (data: { cia_aerea?: string; numero_voo?: string; observacao_despacho?: string }) => {
     if (selectedRT) {
       await updateStatus({ 
@@ -78,6 +85,45 @@ const Index = () => {
         numero_voo: data.numero_voo,
         observacao_despacho: data.observacao_despacho,
       });
+      setSelectedRT(null);
+    }
+  };
+
+  const handleConfirmCancelamento = async (motivo: string) => {
+    if (selectedRT && currentAgente) {
+      // Salva natureza original antes de converter
+      const naturezaOriginal = selectedRT.natureza;
+      
+      // Converte para natureza de coleta baseada na original
+      let novaNatureza: NaturezaRT;
+      if (naturezaOriginal.includes('aereo')) {
+        novaNatureza = 'aereo_coleta';
+      } else if (naturezaOriginal.includes('terrestre')) {
+        novaNatureza = 'terrestre_coleta';
+      } else {
+        novaNatureza = 'coleta';
+      }
+
+      // Primeiro atualiza a natureza e informações de cancelamento
+      await updateRT({
+        id: selectedRT.id,
+        data: {
+          natureza: novaNatureza,
+          motivo_cancelamento: motivo,
+          data_cancelamento: new Date().toISOString(),
+          cancelado_por: currentAgente.nome,
+          natureza_original: naturezaOriginal
+        },
+        motivo: 'Cancelamento de embarque',
+        dadosAnteriores: selectedRT
+      });
+      
+      // Depois atualiza o status
+      await updateStatus({ 
+        id: selectedRT.id, 
+        status: 'embarque_cancelado'
+      });
+      
       setSelectedRT(null);
     }
   };
@@ -112,7 +158,8 @@ const Index = () => {
   const RTCardItem = ({ rt, showColeta, completed }: { rt: RT; showColeta?: boolean; completed?: boolean }) => {
     const canMarkColeta = isParaColeta(rt.natureza) && rt.status === 'pendente';
     const canMarkDespacho = isParaDespacho(rt.natureza) && (rt.status === 'pendente' || rt.status === 'coletada');
-    const isCompleted = rt.status === 'despachada' || rt.status === 'coletada';
+    const canCancelEmbarque = isParaDespacho(rt.natureza) && rt.status === 'pendente';
+    const isCompleted = rt.status === 'despachada' || rt.status === 'coletada' || rt.status === 'embarque_cancelado';
     const wasColetada = rt.status === 'despachada' && rt.coletada_em;
 
     return (
@@ -140,6 +187,12 @@ const Index = () => {
             )}
             <Badge variant="outline" className="text-xs">{naturezaLabels[rt.natureza]}</Badge>
             <Badge variant={rt.classificacao === 'fragil' ? 'destructive' : 'secondary'} className="text-xs">{classificacaoLabels[rt.classificacao]}</Badge>
+            {rt.status === 'embarque_cancelado' && (
+              <Badge variant="destructive" className="text-xs gap-1">
+                <AlertTriangle className="h-2.5 w-2.5" />
+                Cancelado
+              </Badge>
+            )}
           </div>
           <DropdownMenu>
             <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="h-6 w-6"><MoreHorizontal className="h-3.5 w-3.5" /></Button></DropdownMenuTrigger>
@@ -154,6 +207,12 @@ const Index = () => {
                 <DropdownMenuItem onClick={() => handleOpenDespacho(rt)}>
                   <Truck className="h-4 w-4 mr-2 text-success" />
                   Marcar como Despachada
+                </DropdownMenuItem>
+              )}
+              {canCancelEmbarque && (
+                <DropdownMenuItem onClick={() => handleOpenCancelamento(rt)}>
+                  <AlertTriangle className="h-4 w-4 mr-2 text-orange-600" />
+                  Cancelar Embarque
                 </DropdownMenuItem>
               )}
               {isCompleted && (
@@ -191,6 +250,11 @@ const Index = () => {
             <div className="flex items-center gap-1"><Scale className="h-3 w-3" /><span>{Number(rt.peso).toFixed(2)} kg</span></div>
             <div className="flex items-center gap-1"><DollarSign className="h-3 w-3" /><span>{formatCurrency(Number(rt.valor))}</span></div>
           </div>
+          {rt.status === 'embarque_cancelado' && rt.motivo_cancelamento && (
+            <div className="mt-2 p-2 bg-orange-50 dark:bg-orange-950/20 rounded border border-orange-200 dark:border-orange-800">
+              <p className="text-xs text-orange-800 dark:text-orange-200 font-medium">Cancelado: {rt.motivo_cancelamento}</p>
+            </div>
+          )}
         </div>
       </div>
     );
@@ -272,6 +336,13 @@ const Index = () => {
         onOpenChange={setDespachoDialogOpen}
         onConfirm={handleConfirmDespacho}
         isAereo={selectedRT ? isAereo(selectedRT.natureza) : false}
+      />
+      
+      <CancelamentoEmbarqueDialog
+        open={cancelamentoDialogOpen}
+        onOpenChange={setCancelamentoDialogOpen}
+        onConfirm={handleConfirmCancelamento}
+        rt={selectedRT}
       />
     </div>
   );

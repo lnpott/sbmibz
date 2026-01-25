@@ -200,6 +200,7 @@ export const useRTs = () => {
         pendente: 'RT retornada para pendente!',
         coletada: 'RT marcada como coletada!',
         despachada: 'RT marcada como despachada!',
+        embarque_cancelado: 'Embarque cancelado com sucesso!',
       };
       toast.success(statusMessages[variables.status]);
     },
@@ -356,43 +357,37 @@ export const useRTs = () => {
       dadosAnteriores 
     }: { 
       id: string; 
-      data: {
-        numero: string;
-        numeros_anteriores?: string[];
-        natureza: NaturezaRT;
-        descricao?: string;
-        classificacao: ClassificacaoCarga;
-        origem: string;
-        origem_id?: string;
-        destino: string;
-        destino_id?: string;
-        programacao?: string;
-        data_recebimento_base?: string;
-        data_prevista_despacho?: string;
-        peso: number;
-        valor: number;
-      };
+      data: Partial<RT>;
       motivo: string;
       dadosAnteriores: RT;
     }) => {
+      const updateData: any = {};
+      
+      // Copia apenas os campos que existem em data
+      if (data.numero !== undefined) updateData.numero = data.numero;
+      if (data.numeros_anteriores !== undefined) updateData.numeros_anteriores = data.numeros_anteriores;
+      if (data.natureza !== undefined) updateData.natureza = data.natureza;
+      if (data.descricao !== undefined) updateData.descricao = data.descricao;
+      if (data.classificacao !== undefined) updateData.classificacao = data.classificacao;
+      if (data.origem !== undefined) updateData.origem = data.origem;
+      if (data.origem_id !== undefined) updateData.origem_id = data.origem_id;
+      if (data.destino !== undefined) updateData.destino = data.destino;
+      if (data.destino_id !== undefined) updateData.destino_id = data.destino_id;
+      if (data.programacao !== undefined) updateData.programacao = data.programacao;
+      if (data.data_recebimento_base !== undefined) updateData.data_recebimento_base = data.data_recebimento_base;
+      if (data.data_prevista_despacho !== undefined) updateData.data_prevista_despacho = data.data_prevista_despacho;
+      if (data.peso !== undefined) updateData.peso = data.peso;
+      if (data.valor !== undefined) updateData.valor = data.valor;
+      
+      // Novos campos para cancelamento
+      if (data.motivo_cancelamento !== undefined) updateData.motivo_cancelamento = data.motivo_cancelamento;
+      if (data.data_cancelamento !== undefined) updateData.data_cancelamento = data.data_cancelamento;
+      if (data.cancelado_por !== undefined) updateData.cancelado_por = data.cancelado_por;
+      if (data.natureza_original !== undefined) updateData.natureza_original = data.natureza_original;
+
       const { error: updateError } = await supabase
         .from('rts')
-        .update({
-          numero: data.numero,
-          numeros_anteriores: data.numeros_anteriores || [],
-          natureza: data.natureza,
-          descricao: data.descricao || null,
-          classificacao: data.classificacao,
-          origem: data.origem,
-          origem_id: data.origem_id || null,
-          destino: data.destino,
-          destino_id: data.destino_id || null,
-          programacao: data.programacao || null,
-          data_recebimento_base: data.data_recebimento_base || null,
-          data_prevista_despacho: data.data_prevista_despacho || null,
-          peso: data.peso,
-          valor: data.valor,
-        })
+        .update(updateData)
         .eq('id', id);
       
       if (updateError) throw updateError;
@@ -411,13 +406,19 @@ export const useRTs = () => {
             origem: dadosAnteriores.origem,
             destino: dadosAnteriores.destino,
             programacao: dadosAnteriores.programacao,
+            data_recebimento_base: dadosAnteriores.data_recebimento_base,
+            data_prevista_despacho: dadosAnteriores.data_prevista_despacho,
             peso: dadosAnteriores.peso,
             valor: dadosAnteriores.valor,
           },
-          dados_novos: data,
-        });
+          dados_novos: updateData,
+          editado_em: new Date().toISOString(),
+        })
+        .select();
       
       if (logError) throw logError;
+      
+      return { success: true };
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['rts'] });
