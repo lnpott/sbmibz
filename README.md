@@ -1,73 +1,90 @@
-# Welcome to your Lovable project
+# Sistema de Gerenciamento de RTs
 
-## Project info
+## Sobre o Projeto
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+Sistema web para gerenciamento de Remessas de Transporte (RTs), desenvolvido para controle logístico de remessas com acompanhamento de status em tempo real.
 
-## How can I edit this code?
+## Tecnologias Utilizadas
 
-There are several ways of editing your application.
+- **Frontend**: React 18 + TypeScript
+- **Build Tool**: Vite
+- **UI Framework**: shadcn/ui + Tailwind CSS
+- **Backend**: Supabase (banco de dados e autenticação)
+- **State Management**: React Query (@tanstack/react-query)
+- **Routing**: React Router DOM
+- **Formulários**: React Hook Form + Zod
+- **Icons**: Lucide React
 
-**Use Lovable**
+## Funcionalidades
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+- ✅ Gestão completa de RTs (criar, editar, acompanhar)
+- ✅ Controle de status: Pendente → Coletada → Despachada
+- ✅ Sistema multi-agentes
+- ✅ Dashboard com estatísticas em tempo real
+- ✅ Geração de relatórios e impressão
+- ✅ Interface responsiva e moderna
 
-Changes made via Lovable will be committed automatically to this repo.
+## Pré-requisitos
 
-**Use your preferred IDE**
+- Node.js 18+ 
+- npm ou yarn
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+## Instalação
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+```bash
+# Clone o repositório
+git clone https://github.com/lnpott/sbmibz.git
 
-Follow these steps:
+# Entre no diretório
+cd sbmibz
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+# Instale as dependências
+npm install
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+# Configure as variáveis de ambiente
+cp .env.example .env
+# Edite o arquivo .env com suas credenciais do Supabase
 
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
+# Inicie o servidor de desenvolvimento
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+## Variáveis de Ambiente
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+```env
+VITE_SUPABASE_URL=your_supabase_url
+VITE_SUPABASE_PUBLISHABLE_KEY=your_supabase_key
+VITE_SUPABASE_PROJECT_ID=your_project_id
+```
 
-**Use GitHub Codespaces**
+## Scripts Disponíveis
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+- `npm run dev` - Inicia servidor de desenvolvimento
+- `npm run build` - Build para produção
+- `npm run build:dev` - Build modo desenvolvimento
+- `npm run preview` - Preview do build
+- `npm run lint` - Executa ESLint
 
-## What technologies are used for this project?
+## Estrutura do Projeto
 
-This project is built with:
+```
+src/
+├── components/     # Componentes UI reutilizáveis
+├── pages/         # Páginas principais
+├── hooks/         # Hooks personalizados
+├── types/         # Definições TypeScript
+├── lib/           # Utilitários e configurações
+└── integrations/  # Integração com Supabase
+```
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+## Contribuição
 
-## How can I deploy this project?
+1. Faça um fork do projeto
+2. Crie uma branch para sua feature (`git checkout -b feature/nova-funcionalidade`)
+3. Commit suas mudanças (`git commit -am 'Adiciona nova funcionalidade'`)
+4. Push para a branch (`git push origin feature/nova-funcionalidade`)
+5. Abra um Pull Request
 
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
+## Licença
 
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+Este projeto está sob licença MIT.
