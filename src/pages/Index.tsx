@@ -9,6 +9,7 @@ import { AgentePicker, useSavedAgente } from '@/components/AgentePicker';
 import { ColetaDialog } from '@/components/ColetaDialog';
 import { DespachoDialog } from '@/components/DespachoDialog';
 import { CancelamentoEmbarqueDialog } from '@/components/CancelamentoEmbarqueDialog';
+import { CancelamentoColetaDialog } from '@/components/CancelamentoColetaDialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -33,13 +34,14 @@ const Index = () => {
   const [coletaDialogOpen, setColetaDialogOpen] = useState(false);
   const [despachoDialogOpen, setDespachoDialogOpen] = useState(false);
   const [cancelamentoDialogOpen, setCancelamentoDialogOpen] = useState(false);
+  const [cancelamentoColetaDialogOpen, setCancelamentoColetaDialogOpen] = useState(false);
   const [selectedRT, setSelectedRT] = useState<RT | null>(null);
   
   const currentAgente = useSavedAgente(agentesAtivos);
 
   const pendingDespacho = rts.filter(rt => isParaDespacho(rt.natureza) && rt.status !== 'despachada');
   const pendingColeta = rts.filter(rt => isParaColeta(rt.natureza) && rt.status === 'pendente');
-  const concluidas = rts.filter(rt => rt.status === 'despachada' || rt.status === 'coletada' || rt.status === 'embarque_cancelado');
+  const concluidas = rts.filter(rt => rt.status === 'despachada' || rt.status === 'coletada' || rt.status === 'embarque_cancelado' || rt.status === 'coleta_cancelada');
 
   const filteredRTs = rts.filter(rt => {
     if (!searchQuery.trim()) return true;
@@ -74,6 +76,11 @@ const Index = () => {
   const handleOpenCancelamento = (rt: RT) => {
     setSelectedRT(rt);
     setCancelamentoDialogOpen(true);
+  };
+
+  const handleOpenCancelamentoColeta = (rt: RT) => {
+    setSelectedRT(rt);
+    setCancelamentoColetaDialogOpen(true);
   };
 
   const handleConfirmDespacho = async (data: { cia_aerea?: string; numero_voo?: string; observacao_despacho?: string }) => {
@@ -128,6 +135,45 @@ const Index = () => {
     }
   };
 
+  const handleConfirmCancelamentoColeta = async (motivo: string) => {
+    if (selectedRT && currentAgente) {
+      // Salva natureza original antes de converter
+      const naturezaOriginal = selectedRT.natureza;
+      
+      // Converte para natureza de despacho baseada na original
+      let novaNatureza: NaturezaRT;
+      if (naturezaOriginal.includes('aereo')) {
+        novaNatureza = 'aereo_despacho';
+      } else if (naturezaOriginal.includes('terrestre')) {
+        novaNatureza = 'terrestre_despacho';
+      } else {
+        novaNatureza = 'despacho';
+      }
+
+      // Primeiro atualiza a natureza e informações de cancelamento
+      await updateRT({
+        id: selectedRT.id,
+        data: {
+          natureza: novaNatureza,
+          motivo_cancelamento: motivo,
+          data_cancelamento: new Date().toISOString(),
+          cancelado_por: currentAgente.nome,
+          natureza_original: naturezaOriginal
+        },
+        motivo: 'Cancelamento de coleta',
+        dadosAnteriores: selectedRT
+      });
+      
+      // Depois atualiza o status
+      await updateStatus({ 
+        id: selectedRT.id, 
+        status: 'coleta_cancelada'
+      });
+      
+      setSelectedRT(null);
+    }
+  };
+
   const handleRevertToPendente = async (id: string) => {
     await updateStatus({ id, status: 'pendente' });
   };
@@ -159,7 +205,8 @@ const Index = () => {
     const canMarkColeta = isParaColeta(rt.natureza) && rt.status === 'pendente';
     const canMarkDespacho = isParaDespacho(rt.natureza) && (rt.status === 'pendente' || rt.status === 'coletada');
     const canCancelEmbarque = isParaDespacho(rt.natureza) && rt.status === 'pendente';
-    const isCompleted = rt.status === 'despachada' || rt.status === 'coletada' || rt.status === 'embarque_cancelado';
+    const canCancelColeta = isParaColeta(rt.natureza) && rt.status === 'pendente';
+    const isCompleted = rt.status === 'despachada' || rt.status === 'coletada' || rt.status === 'embarque_cancelado' || rt.status === 'coleta_cancelada';
     const wasColetada = rt.status === 'despachada' && rt.coletada_em;
 
     return (
@@ -193,6 +240,12 @@ const Index = () => {
                 Cancelado
               </Badge>
             )}
+            {rt.status === 'coleta_cancelada' && (
+              <Badge variant="destructive" className="text-xs gap-1">
+                <AlertTriangle className="h-2.5 w-2.5" />
+                Coleta Cancelada
+              </Badge>
+            )}
           </div>
           <DropdownMenu>
             <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="h-6 w-6"><MoreHorizontal className="h-3.5 w-3.5" /></Button></DropdownMenuTrigger>
@@ -213,6 +266,12 @@ const Index = () => {
                 <DropdownMenuItem onClick={() => handleOpenCancelamento(rt)}>
                   <AlertTriangle className="h-4 w-4 mr-2 text-orange-600" />
                   Cancelar Embarque
+                </DropdownMenuItem>
+              )}
+              {canCancelColeta && (
+                <DropdownMenuItem onClick={() => handleOpenCancelamentoColeta(rt)}>
+                  <AlertTriangle className="h-4 w-4 mr-2 text-blue-600" />
+                  Cancelar Coleta
                 </DropdownMenuItem>
               )}
               {isCompleted && (
@@ -253,6 +312,11 @@ const Index = () => {
           {rt.status === 'embarque_cancelado' && rt.motivo_cancelamento && (
             <div className="mt-2 p-2 bg-orange-50 dark:bg-orange-950/20 rounded border border-orange-200 dark:border-orange-800">
               <p className="text-xs text-orange-800 dark:text-orange-200 font-medium">Cancelado: {rt.motivo_cancelamento}</p>
+            </div>
+          )}
+          {rt.status === 'coleta_cancelada' && rt.motivo_cancelamento && (
+            <div className="mt-2 p-2 bg-blue-50 dark:bg-blue-950/20 rounded border border-blue-200 dark:border-blue-800">
+              <p className="text-xs text-blue-800 dark:text-blue-200 font-medium">Coleta Cancelada: {rt.motivo_cancelamento}</p>
             </div>
           )}
         </div>
@@ -342,6 +406,13 @@ const Index = () => {
         open={cancelamentoDialogOpen}
         onOpenChange={setCancelamentoDialogOpen}
         onConfirm={handleConfirmCancelamento}
+        rt={selectedRT}
+      />
+      
+      <CancelamentoColetaDialog
+        open={cancelamentoColetaDialogOpen}
+        onOpenChange={setCancelamentoColetaDialogOpen}
+        onConfirm={handleConfirmCancelamentoColeta}
         rt={selectedRT}
       />
     </div>

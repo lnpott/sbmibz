@@ -201,6 +201,7 @@ export const useRTs = () => {
         coletada: 'RT marcada como coletada!',
         despachada: 'RT marcada como despachada!',
         embarque_cancelado: 'Embarque cancelado com sucesso!',
+        coleta_cancelada: 'Coleta cancelada com sucesso!',
       };
       toast.success(statusMessages[variables.status]);
     },

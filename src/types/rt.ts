@@ -1,7 +1,7 @@
 export type NaturezaRT = 'coleta' | 'despacho' | 'transbordo' | 'aereo_despacho' | 'aereo_coleta' | 'aereo_transbordo' | 'terrestre_despacho' | 'terrestre_coleta';
 export type TipoRecebimento = 'aereo' | 'terrestre';
 export type FinalidadeRT = 'despacho' | 'coleta' | 'transbordo';
-export type StatusRT = 'pendente' | 'coletada' | 'despachada' | 'embarque_cancelado';
+export type StatusRT = 'pendente' | 'coletada' | 'despachada' | 'embarque_cancelado' | 'coleta_cancelada';
 export type ClassificacaoCarga = 'comum' | 'fragil';
 
 export interface Local {
@@ -104,6 +104,7 @@ export const statusLabels: Record<StatusRT, string> = {
   'coletada': 'Coletada',
   'despachada': 'Despachada',
   'embarque_cancelado': 'Embarque Cancelado',
+  'coleta_cancelada': 'Coleta Cancelada',
 };
 
 // Helpers para determinar tipo e finalidade a partir da natureza
