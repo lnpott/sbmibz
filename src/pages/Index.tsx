@@ -1,11 +1,11 @@
 import { useState } from 'react';
-import { useRTs } from '@/hooks/useRTs';
+import { useRTNew } from '@/hooks/useRTNew';
 import { StatsCards } from '@/components/StatsCards';
 import { SearchBar } from '@/components/SearchBar';
 import { RTForm } from '@/components/RTForm';
 import { RTTable } from '@/components/RTTable';
 import { RTImpressao } from '@/components/RTImpressao';
-import { AgentePicker, useSavedAgente } from '@/components/AgentePicker';
+import { useCurrentAgente } from '@/hooks/useCurrentAgente';
 import { ColetaDialog } from '@/components/ColetaDialog';
 import { DespachoDialog } from '@/components/DespachoDialog';
 import { CancelamentoEmbarqueDialog } from '@/components/CancelamentoEmbarqueDialog';
@@ -23,7 +23,7 @@ import { RT, NaturezaRT, ClassificacaoCarga, naturezaLabels, classificacaoLabels
 import { Link } from 'react-router-dom';
 
 const Index = () => {
-  const { rts, coletores, locais, agentesAtivos, empresas, isLoading, addRT, updateStatus, revertToColetada, addColetor, updateColetor, addEmpresa, addLocal, updateRT, findColetorByCPF } = useRTs();
+  const { rts, coletores, locais, agentes, agentesAtivos, empresas, isLoading, addRT, updateStatus, addColetor, updateColetor, addEmpresa, addLocal, updateRT, findColetorByCPF } = useRTNew();
   
   const [showForm, setShowForm] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -37,7 +37,7 @@ const Index = () => {
   const [cancelamentoColetaDialogOpen, setCancelamentoColetaDialogOpen] = useState(false);
   const [selectedRT, setSelectedRT] = useState<RT | null>(null);
   
-  const currentAgente = useSavedAgente(agentesAtivos);
+  const currentAgente = useCurrentAgente(agentes);
 
   const pendingDespacho = rts.filter(rt => isParaDespacho(rt.natureza) && rt.status !== 'despachada');
   const pendingColeta = rts.filter(rt => isParaColeta(rt.natureza) && rt.status === 'pendente');
@@ -179,7 +179,9 @@ const Index = () => {
   };
 
   const handleRevertToColetada = async (id: string) => {
-    await revertToColetada(id);
+    // TODO: Implementar revertToColetada no useRTNew
+    // await revertToColetada(id);
+    console.log('Revert to coletada not implemented yet for RT:', id);
   };
 
   const formatCurrency = (value: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
@@ -327,7 +329,6 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
-      <AgentePicker agentes={agentesAtivos} onSelect={() => {}} />
       <div className="container mx-auto px-4 py-6 space-y-6 max-w-7xl">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
@@ -377,7 +378,7 @@ const Index = () => {
           </TabsContent>
 
           <TabsContent value="table">
-            <RTTable rts={filteredRTs} coletores={coletores} empresas={empresas} onUpdateStatus={updateStatus} onRevertToColetada={revertToColetada} onAddColetor={addColetor} onUpdateColetor={updateColetor} onAddEmpresa={addEmpresa} findColetorByCPF={findColetorByCPF} onUpdateRT={updateRT} />
+            <RTTable rts={filteredRTs} coletores={coletores} empresas={empresas} onUpdateStatus={updateStatus} onRevertToColetada={handleRevertToColetada} onAddColetor={addColetor} onUpdateColetor={updateColetor} onAddEmpresa={addEmpresa} findColetorByCPF={findColetorByCPF} onUpdateRT={updateRT} />
           </TabsContent>
         </Tabs>
       </div>
