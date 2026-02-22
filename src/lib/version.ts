@@ -12,8 +12,14 @@ interface VersionInfo {
 }
 
 export const getVersion = (): string => {
-  const versionInfo = getVersionInfo();
-  return `v${versionInfo.major}.${versionInfo.timestamp}`;
+  const currentInfo = getCurrentVersionInfo();
+  
+  // Se não existir, cria versão inicial
+  if (!currentInfo) {
+    return resetVersionInfo().formatted;
+  }
+  
+  return `v${currentInfo.major}.${currentInfo.timestamp}`;
 };
 
 export const incrementVersion = (): string => {
@@ -81,12 +87,14 @@ export const getVersionInfo = () => {
     return resetVersionInfo();
   }
 
+  const formattedVersion = `v${currentInfo.major}.${currentInfo.timestamp}`;
+
   return {
-    version: getVersion(),
+    version: formattedVersion,
     major: currentInfo.major,
     timestamp: currentInfo.timestamp,
     buildNumber: currentInfo.buildNumber,
-    formatted: getVersion(),
+    formatted: formattedVersion,
     description: `Versão ${currentInfo.major}.${currentInfo.timestamp} (Build #${currentInfo.buildNumber})`,
     createdAt: currentInfo.createdAt
   };
