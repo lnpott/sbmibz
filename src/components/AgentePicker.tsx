@@ -37,7 +37,7 @@ export const AgentePicker = ({ agentes, onSelect }: AgentePickerProps) => {
     } else if (agentes.length > 0) {
       setOpen(true);
     }
-  }, [agentes, onSelect]);
+  }, [agentes]); // Removido onSelect para evitar loop infinito
 
   const handleConfirm = () => {
     if (selected) {
@@ -60,7 +60,7 @@ export const AgentePicker = ({ agentes, onSelect }: AgentePickerProps) => {
           </DialogDescription>
           <div className="flex items-center gap-2 text-xs text-muted-foreground bg-muted/50 rounded p-2">
             <Info className="h-3 w-3" />
-            <span>{versionInfo.formatted} | {versionInfo.counter} modificações</span>
+            <span>{versionInfo.formatted} | Build #{versionInfo.buildNumber}</span>
           </div>
         </DialogHeader>
 

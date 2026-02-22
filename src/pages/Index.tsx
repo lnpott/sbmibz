@@ -37,7 +37,7 @@ const Index = () => {
   const [cancelamentoColetaDialogOpen, setCancelamentoColetaDialogOpen] = useState(false);
   const [selectedRT, setSelectedRT] = useState<RT | null>(null);
   
-  const currentAgente = useCurrentAgente(agentes);
+  const currentAgente = useCurrentAgente(agentesAtivos);
 
   const pendingDespacho = rts.filter(rt => isParaDespacho(rt.natureza) && rt.status !== 'despachada');
   const pendingColeta = rts.filter(rt => isParaColeta(rt.natureza) && rt.status === 'pendente');
