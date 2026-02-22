@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import React, { useCallback } from 'react';
 import { incrementVersion, resetVersion, getVersionInfo } from '@/lib/version';
 
 export const useVersionTracker = () => {

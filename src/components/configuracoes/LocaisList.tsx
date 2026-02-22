@@ -1,7 +1,8 @@
-import { Local } from '@/types/rt';
+import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Pencil, MapPin } from 'lucide-react';
+import { Local } from '@/types/rt';
 
 interface LocaisListProps {
   locais: Local[];

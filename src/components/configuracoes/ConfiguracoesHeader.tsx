@@ -1,3 +1,4 @@
+import React from 'react';
 import { Agente } from '@/types/rt';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
