@@ -19,7 +19,6 @@ export const useVersionTracker = () => {
 
     if (importantActions.some(important => action.includes(important))) {
       const newVersion = incrementVersion();
-      console.log(`Versão incrementada para: ${newVersion} (ação: ${action})`);
       return newVersion;
     }
     
@@ -28,20 +27,18 @@ export const useVersionTracker = () => {
 
   const manualIncrement = useCallback(() => {
     const newVersion = incrementVersion();
-    console.log(`Versão incrementada manualmente para: ${newVersion}`);
     return newVersion;
   }, []);
 
-  const resetVersion = useCallback(() => {
+  const resetVersionCounter = useCallback(() => {
     const newVersion = resetVersion();
-    console.log(`Versão resetada para: ${newVersion}`);
     return newVersion;
   }, []);
 
   return {
     incrementVersionOnAction,
     manualIncrement,
-    resetVersion,
+    resetVersion: resetVersionCounter,
     currentVersion: getVersionInfo().formatted,
     versionInfo: getVersionInfo()
   };
