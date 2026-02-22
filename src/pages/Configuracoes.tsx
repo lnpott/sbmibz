@@ -40,8 +40,8 @@ const Configuracoes = () => {
 
   const handleIncrementVersion = () => {
     const newVersion = manualIncrement();
-    // Recarrega apenas os dados necessários em vez da página inteira
-    navigate(0); // Force refresh da rota atual
+    // Apenas incrementa a versão sem recarregar a página
+    // O usuário pode recarregar manualmente se necessário
   };
 
   // Busca universal
