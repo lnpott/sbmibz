@@ -1,3 +1,5 @@
 # Arquivos temporários e cache
 node_modules
-*ConfiguracoesRefactored
+*ConfiguracoesRefactored*
+**/ConfiguracoesRefactored*
+src/**/ConfiguracoesRefactored*
