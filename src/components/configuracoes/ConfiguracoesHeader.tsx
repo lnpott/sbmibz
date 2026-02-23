@@ -10,22 +10,22 @@ interface ConfiguracoesHeaderProps {
   currentAgente: Agente | null;
   versionInfo: {
     version: string;
+    major: string;
+    timestamp: string;
+    buildNumber: number;
     formatted: string;
+    description: string;
+    createdAt: string;
   };
-  onIncrementVersion: () => void;
 }
 
-export const ConfiguracoesHeader = ({
-  currentAgente,
-  versionInfo,
-  onIncrementVersion
-}: ConfiguracoesHeaderProps) => {
+export const ConfiguracoesHeader = ({ currentAgente, versionInfo }: ConfiguracoesHeaderProps) => {
   const { logout } = useAuth();
   const navigate = useNavigate();
 
   const handleLogout = () => {
     logout();
-    navigate('/');
+    navigate('/login');
   };
 
   return (
@@ -38,13 +38,6 @@ export const ConfiguracoesHeader = ({
           </Button>
         </Link>
         
-        <div className="flex items-center gap-2">
-          <Settings className="h-5 w-5" />
-          <h1 className="text-2xl font-bold">Configurações</h1>
-        </div>
-      </div>
-
-      <div className="flex items-center gap-4">
         {currentAgente && (
           <div className="flex items-center gap-2">
             <span className="text-sm text-muted-foreground">Agente:</span>
@@ -58,17 +51,30 @@ export const ConfiguracoesHeader = ({
           <Button
             variant="outline"
             size="sm"
-            onClick={onIncrementVersion}
-            title="Incrementar versão manualmente"
+            onClick={() => window.location.reload()}
           >
-            <Zap className="h-4 w-4" />
+            <Zap className="h-4 w-4 mr-2" />
+            Atualizar
           </Button>
         </div>
+      </div>
 
-        <Button variant="destructive" size="sm" onClick={handleLogout}>
+      <div className="flex items-center gap-2">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleLogout}
+        >
           <LogOut className="h-4 w-4 mr-2" />
           Sair
         </Button>
+        
+        <Link to="/configuracoes">
+          <Button variant="outline" size="sm">
+            <Settings className="h-4 w-4 mr-2" />
+            Configurações
+          </Button>
+        </Link>
       </div>
     </div>
   );

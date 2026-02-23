@@ -15,30 +15,22 @@ export const LocaisList = ({ locais, onEdit }: LocaisListProps) => {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <MapPin className="h-5 w-5" />
-          Locais ({locais.length})
+          Locais
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="space-y-3">
+        <div className="space-y-4">
           {locais.map((local) => (
             <div
               key={local.id}
-              className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors"
+              className="flex items-center justify-between p-4 border rounded-lg"
             >
-              <div className="flex items-center gap-3">
-                <MapPin className="h-5 w-5 text-green-600" />
-                <div>
-                  <p className="font-medium">{local.codigo}</p>
-                  {local.descricao && (
-                    <p className="text-sm text-muted-foreground">{local.descricao}</p>
-                  )}
-                  <p className="text-xs text-muted-foreground">
-                    ID: {local.id.slice(0, 8)}...
-                  </p>
-                </div>
+              <div>
+                <h4 className="font-medium">{local.codigo}</h4>
+                <p className="text-sm text-muted-foreground">{local.descricao}</p>
               </div>
               <Button
-                variant="ghost"
+                variant="outline"
                 size="sm"
                 onClick={() => onEdit(local)}
               >
